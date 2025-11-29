@@ -1,197 +1,286 @@
-import { useEffect, useState, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 import axiosInstance from "../utils/authInterceptor";
-import {store} from "../context/StoreProvider"
+import { store } from "../context/StoreProvider";
 
-//Utility function for capitalizing keys
-const capitalizeWords = (str) => {
-  return str
-    .split(/(?=[A-Z])|_/g) // split camelCase, snake_case into words
-    .map(
-      word =>
-        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-    )
-    .join(" ");
-};
+const UpdateProfile = () => {
+  const { user } = useContext(store);
+  const navigate = useNavigate();
 
-const ProfileData = () => {
-  const [profile, setProfile] = useState({
-    pic: [],
+  const [formData, setFormData] = useState({
     name: "",
-    dob: "",
-    mobile: "",
+    email: "",
+    phone: "",
     address: "",
-    gmail: "",
+    zip: "",
+    DOB: "",
     shop: false,
     shopName: "",
     qualification: false,
     qualificationName: "",
-    experience: 0,
+    experience: "",
+    rating: "",
+    image: "", // can hold either URL or File object
   });
 
-  const handleChange = (key, value) => {
-    setProfile(prev => ({ ...prev, [key]: value }));
-  };
+  const [preview, setPreview] = useState(null); // ✅ for image preview
+  const [loading, setLoading] = useState(true);
 
+  // ✅ Fetch user data
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchUserData = async () => {
+      if (!user?.id) return;
       try {
-        const cookieUser = Cookies.get("user");
-        const parsedData = cookieUser ? JSON.parse(cookieUser) : null;
-        
-        if (!parsedData) {
-          toast.error("User not found in the system");
+        const res = await axiosInstance.get(`/user/show/${user.id}`);
+        if (res.status !== 200) {
+          toast.error(res.data?.message || "Failed to load user data");
+          setLoading(false);
           return;
         }
 
-        const res = await axiosInstance.get(`/user/show/${parsedData.id}`);
-        if (res.status === 200 && res.data.user) {
-
-          const IGNORED_KEYS = ["__v", "updatedAt", "createdAt", "_id", "otpVerified", "role"];
-
-          const data = res.data.user;
-
-          const normalized = Object.fromEntries(
-            Object.keys(data)
-              .filter((key) => {
-                if (user.role === "admin" || user.role === "user") {
-                  //console.log("the key is "+ key +"and the value is " +!IGNORED_KEYS.includes(key));
-                  return UserIgnored.includes(key);
-                }
-                return true;
-              })
-              .filter((key) => !IGNORED_KEYS.includes(key))
-              .map((key) => {
-                let value = data[key];
-                if (key === "DOB" && value)
-                  return ["dob", new Date(value).toISOString().split("T")[0]];
-                if (key === "phone") return ["mobile", value];
-                if (key === "email") return ["gmail", value];
-                return [key, value ?? ""];
-              })
-          );
-
-          setProfile(prev => ({ ...prev, ...normalized }));
-        } else {
-          toast.error("Profile data not found. Please reload the page");
-        }
-      } catch (error) {
-        console.error(error);
-        toast.error("Failed to fetch profile");
+        const u = res.data.user;
+        console.log(u);
+        setFormData({
+          name: u.name || "",
+          email: u.email || "",
+          phone: u.phone || "",
+          address: u.address || "",
+          zip: u.zip || "",
+          DOB: u.DOB ? u.DOB.split("T")[0] : "",
+          shop: u.shop || false,
+          shopName: u.shopName || "",
+          qualification: u.qualification || false,
+          qualificationName: u.qualificationName || "",
+          experience: u.experience || "",
+          rating: u.rating || "",
+        });
+        setPreview(u.pic[0].url || null);
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+        toast.error("Something went wrong while loading data");
+      } finally {
+        setLoading(false);
       }
     };
+    fetchUserData();
+  }, [user]);
 
+  // ✅ Handle input changes
+  const handleChange = (e) => {
+    console.log(e.target);
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-    fetchProfile();
-  }, []);
+  // ✅ Handle radio buttons
+  const handleRadioChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value === "true" }));
+  };
 
-
-  //api for update
-  const UpdateApi = async () => {
-    try {
-      const cookieUser = Cookies.get("user");
-      const parsedData = cookieUser ? JSON.parse(cookieUser) : null;
-
-      if (!parsedData) {
-        toast.error("User not found in the system");
-        return;
-      }
-
-      const res = await axiosInstance.put(`/user/update/${parsedData.id}`, profile);
-
-      if (res.status === 200) {
-        toast.success(res.data.message);
-      } else {
-        toast.info(res.data.message);
-      }
-
-
-    } catch (error) {
-      toast.error("Failed to fetch profile");
+  // ✅ Handle image upload
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, image: file }));
+      setPreview(URL.createObjectURL(file)); // temporary preview URL
     }
   };
 
+  // ✅ Submit updated profile
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const data = new FormData();
+
+      // Append primitive fields explicitly so their form-names are guaranteed
+      data.append("name", formData.name || "");
+      data.append("email", formData.email || "");
+      data.append("phone", formData.phone || "");
+      data.append("address", formData.address || "");
+      data.append("zip", formData.zip || "");
+      data.append("DOB", formData.DOB || "");
+      data.append("shop", String(formData.shop)); // send booleans as strings or 0/1 based on backend
+      data.append("shopName", formData.shopName || "");
+      data.append("qualification", String(formData.qualification));
+      data.append("qualificationName", formData.qualificationName || "");
+      data.append("experience", formData.experience || "");
+      data.append("rating", formData.rating || "");
+
+      // Append the image only if it's a File (new upload). If image is a URL string (existing),
+      // skip or include a different field depending on your backend API.
+      if (formData.image && formData.image instanceof File) {
+        // 'image' must match the field name your backend expects (e.g. 'image' or 'pic')
+        console.log("image"+formData.image);
+        data.append("image", formData.image);
+      } else {
+        // Optionally, if backend needs the existing url, append it as another field:
+        // data.append("existingImage", formData.image || "");
+      }
+
+      // === Debug: inspect FormData contents in console ===
+      // (FormData doesn't let you console.log the object directly; iterate entries)
+      for (const pair of data.entries()) {
+        console.log(pair[0], pair[1]);
+      }
+
+      // IMPORTANT: Do NOT set Content-Type manually.
+      // Let the browser set the correct multipart boundary header.
+      const res = await axiosInstance.put(`/user/update/${user.id}`, data /*, no headers */);
+
+      if (res.status === 200) {
+        toast.success("Profile updated successfully!");
+        navigate("/lala");
+      } else {
+        toast.error(res.data?.message || "Update failed");
+      }
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      toast.error("Something went wrong while updating profile");
+    }
+  };
+
+
+  if (loading) return <div className="text-center text-gray-500 p-6">Loading...</div>;
+
   return (
-    <div className="bg-gray-100 shadow rounded-xl p-4 grid grid-cols-2 space-x-2">
+    <div className="bg-[#BBBDBC]  rounded-2xl p-4 border-gray-100">
 
-      {/* Render inputs dynamically */}
-      {Object.keys(profile).map(key => {
-        // handle array
-        if (Array.isArray(profile[key])) {
-          return (
-            <div key={key} className="mb-2">
-              <strong>{capitalizeWords(key)}:</strong>{" "}
-              {JSON.stringify(profile[key])}
-            </div>
-          );
-        }
+      <form onSubmit={handleSubmit} className="space-y-4">
 
-        // handle boolean → checkbox
-        if (typeof profile[key] === "boolean") {
-          return (
-            <div key={key} className="mb-2">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={profile[key]}
-                  onChange={e => handleChange(key, e.target.checked)} // ✅ Boolean
-                />
-                <span>{capitalizeWords(key)}</span>
-              </label>
-            </div>
-          );
-        }
-
-        // handle number → numeric input
-        if (typeof profile[key] === "number") {
-          return (
-            <div key={key} className="mb-2">
-              <h1 className="font-semibold mb-1">{`${capitalizeWords(key)}:`}</h1>
-              <input
-                type="number"
-                value={profile[key] ?? ""}
-                onChange={e => handleChange(key, Number(e.target.value))}
-                className="border p-2 w-full rounded"
-              />
-            </div>
-          );
-        }
-
-        // handle date
-        if (key === "dob") {
-          return (
-            <div key={key} className="mb-2">
-              <h1 className="font-semibold mb-1">{`${capitalizeWords(key)}:`}</h1>
-              <input
-                type="date"
-                value={profile[key] ?? ""}
-                onChange={e => handleChange(key, e.target.value)}
-                className="border p-2 w-full rounded"
-              />
-            </div>
-          );
-        }
-
-        // default → text
-        return (
-          <div key={key} className="mb-2">
-            <h1 className="font-semibold mb-1">{`${capitalizeWords(key)}:`}</h1>
-            <input
-              type="text"
-              placeholder={`Enter ${capitalizeWords(key)}`}
-              value={profile[key] ?? ""}
-              onChange={e => handleChange(key, e.target.value)}
-              className="border p-2 w-full rounded"
+        {/* ✅ File input + Preview */}
+        <div className="relative w-32 h-32 rounded-full border-2 border-gray-300 overflow-hidden group cursor-pointer mx-auto ">
+          {/* 🖼️ Show image or placeholder */}
+          {preview ? (
+            <img
+              src={preview}
+              alt="Profile"
+              className="w-full h-full object-cover"
             />
-          </div>
-        );
-      })}
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+              Upload Image
+            </div>
+          )}
 
-      <button className="rounded-3xl bg-[#52AB98] hover:bg-[#3d7e70]" onClick={UpdateApi}>
-        Save Change
-      </button>
+          {/*Transparent overlay on hover */}
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            Change Photo
+          </div>
+
+          {/*Hidden input covering entire image */}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="absolute inset-0 opacity-0 cursor-pointer z-10"
+          />
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6 my-8 mx-4">
+        {/* ✅ Basic Fields */}
+        <InputField label="Name" name="name" value={formData.name} onChange={handleChange} />
+        <InputField label="Email" name="email" value={formData.email} onChange={handleChange} />
+        <InputField label="Phone" name="phone" value={formData.phone} onChange={handleChange} />
+        <InputField label="Address" name="address" value={formData.address} onChange={handleChange} />
+        <InputField label="ZIP Code" name="zip" value={formData.zip} onChange={handleChange} />
+        <InputField label="Date of Birth" name="DOB" type="date" value={formData.DOB} onChange={handleChange} />
+
+        {/* ✅ Technician-only fields */}
+        {user.role === "technician" && (
+          <>
+            <RadioGroup
+              label="Do you have a shop?"
+              name="shop"
+              value={formData.shop}
+              onChange={handleRadioChange}
+            />
+            {formData.shop && (
+              <InputField
+                label="Shop Name"
+                name="shopName"
+                value={formData.shopName}
+                onChange={handleChange}
+              />
+            )}
+
+            <RadioGroup
+              label="Do you have a qualification?"
+              name="qualification"
+              value={formData.qualification}
+              onChange={handleRadioChange}
+            />
+            {formData.qualification && (
+              <InputField
+                label="Qualification Name"
+                name="qualificationName"
+                value={formData.qualificationName}
+                onChange={handleChange}
+              />
+            )}
+
+            <InputField
+              label="Experience (years)"
+              name="experience"
+              type="number"
+              value={formData.experience}
+              onChange={handleChange}
+            />
+            <InputField
+              label="Rating"
+              name="rating"
+              type="number"
+              value={formData.rating}
+              onChange={handleChange}
+            />
+          </>
+        )}
+        </div>
+
+        <div className="text-center">
+          <button
+            type="submit"
+            className="bg-[#52AB98] hover:bg-[#328a77] text-white font-medium py-2 px-6 rounded-lg transition-all duration-200"
+          >
+            Save Changes
+          </button>
+        </div>
+      </form>
     </div>
   );
 };
 
-export default ProfileData;
+// ✅ Input Field
+const InputField = ({ label, name, value, onChange, type = "text" }) => (
+  <div>
+    <label className="block text-gray-700 font-medium">{label} :</label>
+    <input
+      type={type}
+      name={name}
+      value={value}
+      onChange={onChange}
+      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+    />
+  </div>
+);
+
+// ✅ Radio Group
+const RadioGroup = ({ label, name, value, onChange }) => (
+  <div>
+    <label className="block text-gray-700 font-medium">{label}</label>
+    <div className="flex gap-6">
+      <label className="flex items-center gap-2">
+        <input type="radio" name={name} value="true" checked={value === true} onChange={onChange} />
+        Yes
+      </label>
+      <label className="flex items-center gap-2">
+        <input type="radio" name={name} value="false" checked={value === false} onChange={onChange} />
+        No
+      </label>
+    </div>
+  </div>
+);
+
+export default UpdateProfile;

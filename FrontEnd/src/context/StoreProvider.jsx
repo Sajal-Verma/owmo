@@ -1,41 +1,27 @@
-import { createContext, useEffect, useState } from "react";
-import axiosInstance from "../api/axios";
+// StoreProvider.js
+import { createContext, useState } from "react";
 
-//create the context used in other componet
-export const store = createContext();
+export const store = createContext(); // export the context
 
+function StoreProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [isLogin, setIsLogin] = useState(false);
 
-//This component wraps your app and provides context values to all its children
-function ContextProvider({children}){
+  const loginUser = (userData) => {
+    setUser(userData);
+    setIsLogin(true);
+  };
 
-    const [user, setUser]= useState(null);
-    const [loder, setLoader] = useState(false);
+  const logoutUser = () => {
+    setUser(null);
+    setIsLogin(false);
+  };
 
-
-    const getUser= async ()=>{
-        try {
-            setLoader(true)
-            const userData= await axiosInstance.get('/user/get-user')
-            setUser(userData.user) /// acordig the server response
-            
-        } catch (error) {
-            console.log(error)
-        }
-        finally{
-            setLoader(false)
-        }
-    }
-
-
-    useEffect(()=>{
-        getUser()
-    },[])
-    return (
-
-        //provide the data that can be used by the other componet
-        <store.Provider value={{user,setUser,loder}}>
-            {children}
-        </store.Provider>
-    )
+  return (
+    <store.Provider value={{ user, isLogin, loginUser, logoutUser }}>
+      {children}
+    </store.Provider>
+  );
 }
-export default ContextProvider
+
+export default StoreProvider;

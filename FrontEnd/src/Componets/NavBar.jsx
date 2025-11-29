@@ -2,13 +2,16 @@ import { Link } from 'react-router-dom';
 import Cookies from "js-cookie";
 
 import logo from '../assets/image/SiteLogo.png';
-import { useState, useEffect } from 'react';
+import logo2 from "../assets/image/owmo1.png"
+import { useState, useEffect , useContext} from 'react';
+import {store} from "../context/StoreProvider"
 
 function NavBar() {
 
 
     const [Open, setOpen] = useState(false);
     const [userData, setUserData] = useState(null);
+    const {user, isLogin, loginUser} = useContext(store);
 
     useEffect(() => {
         // Load user data from cookies on mount
@@ -57,24 +60,27 @@ function NavBar() {
 
 
             <div className='pt-1 md:self-center'>
-                <a href="#"><img src={logo} alt="img" className='h-10' /></a>
+                <Link to="/" className='flex flex-row'>
+                <img src={logo} alt="img" className='h-10' />
+                <img src={logo2} alt="img" className='h-5 self-center pl-1' />
+                </Link>
             </div>
             <ul className="hidden md:flex space-x-8 text-xl self-center">
                 <li><Link to="/" className="hover:text-gray-200">Home</Link></li>
                 <li><Link to="/about" className="hover:text-gray-200">About</Link></li>
                 <li><Link to="/faq" className="hover:text-gray-200">FAQs</Link></li>
-                <li><Link to="/contact" className="hover:text-gray-200">Contact</Link></li>
+                {/*<li><Link to="/contact" className="hover:text-gray-200">Contact</Link></li>*/}
             </ul>
             {
-                userData ? (
-                    <Link to={"/lala"} className="cursor-pointer">
-                        <button className='hidden md:inline bg-[#52AB98] text-xl px-6 py-1 rounded-md'>
-                            Welcome {userData.name || ""}
+                isLogin ? (
+                    <Link to={"/lala"}>
+                        <button className='hidden md:inline bg-[#52AB98] text-xl px-6 py-1 rounded-md cursor-pointer'>
+                            Welcome {user.name || ""}
                         </button>
                     </Link>
                 ) : (
-                    <Link to={"/login"} className="cursor-pointer">
-                        <button className='hidden md:inline bg-[#52AB98] text-xl px-6 py-1 rounded-md'>
+                    <Link to={"/login"}>
+                        <button className='hidden md:inline bg-[#52AB98] text-xl px-6 py-1 rounded-md cursor-pointer'>
                             Login
                         </button>
                     </Link>

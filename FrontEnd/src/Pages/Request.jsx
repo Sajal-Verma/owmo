@@ -1,8 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { ModleData, issueData, Service, UrgencyData, brand as brandList } from "../assets/data";
+import axiosInstance from "../utils/authInterceptor";
+import { toast } from "react-toastify";
+import { store } from "../context/StoreProvider";
 
 
 function Request() {
+
+
+    const { user } = useContext(store);
+
 
 
     const [step, setStep] = useState(0);
@@ -18,6 +25,12 @@ function Request() {
     const [city, setCity] = useState("");
     const [pincode, setPincode] = useState("");
     const [uploadedImages, setUploadedImages] = useState([]);
+
+    const [technicians, setTechnicians] = useState([]);
+
+    const [selectTechnician, setSelectTechnician] = useState(null);
+
+
     const [dragActive, setDragActive] = useState(false);
 
 
@@ -48,6 +61,9 @@ function Request() {
             <span className="text-gray-700 font-medium">{data.head}</span>
         </label>
     ));
+
+
+
 
     // Issue selection
     const issues = issueData.map((data, index) => (
@@ -81,6 +97,8 @@ function Request() {
     ));
 
 
+
+
     //service selection
     const Services = Service.map((data, index) => (
         <label
@@ -99,6 +117,8 @@ function Request() {
             <span className="text-gray-700 font-medium">{data}</span>
         </label>
     ));
+
+
 
 
     //ur selection
@@ -146,6 +166,113 @@ function Request() {
 
 
 
+    //Api for fatching the tecnician according to the zip code . that have same Zip code
+    useEffect(() => {
+        const fetchTechnicians = async () => {
+            try {
+                // Only run if pincode has a valid length (e.g., 6 digits)
+                if (pincode && pincode.length === 6) {
+                    const res = await axiosInstance.get(`/user/TechByPin?pincode=${pincode}`);
+
+                    if (res.data && res.data.users) {
+                        setTechnicians(res.data.users);
+                    } else {
+                        setTechnicians([]);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching technicians:", error);
+                toast.error("Error fetching technicians: " + error.message);
+            }
+        };
+
+        fetchTechnicians();
+    }, [pincode]);
+
+
+
+
+    //handleFinalSubmit
+    const handleFinalSubmit = async () => {
+        try {
+            if (!selected || !selectedBrand || !model || !issue ||
+                !address || !city || !pincode || !selectTechnician) {
+                toast.error("Please complete all required fields");
+                return;
+            }
+
+            const formData = new FormData();
+
+            // Device
+            formData.append("type", selected.toLowerCase());
+            formData.append("brand", selectedBrand.toLowerCase());
+            formData.append("model", model);
+            formData.append("imei", imei || "");
+
+            // Issue
+            const selectedIssue = issue === "Other" ? "other" : issue;
+            formData.append("issue", selectedIssue);
+
+            if (selectedIssue === "other") {
+                formData.append("issueDescription", otherText);
+            }
+
+            // Service
+            formData.append("serviceType", serviceType);
+            formData.append("urgency", urgency);
+
+            // Address (nested JSON)
+            const addrObj = {
+                street: address,
+                city: city,
+                pincode: pincode,
+            };
+
+            formData.append("address", JSON.stringify(addrObj));
+
+            // User
+            formData.append("userId", user.id);
+
+            // Technician
+            formData.append("technicianId", selectTechnician._id);
+            formData.append("technicianName", selectTechnician.name);
+
+            // Images
+            uploadedImages.forEach((image) => {
+                formData.append("image", image.file || image);
+            });
+
+            const response = await axiosInstance.post(
+                "/request/create",
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
+
+            if (response.status === 201) {
+                toast.success("Request submitted successfully!");
+            }
+
+        } catch (error) {
+            console.error("Submit Error:", error);
+            toast.error(error.response?.data?.message || "Error submitting request");
+        }
+    };
+
+
+
+
+
+
+
+
+    //to upload the data of the request
+    const uploadDate = async () => {
+        try {
+
+        } catch (error) {
+
+        }
+    }
 
     return (
         <div className="py-28 bg-[#F2F0EF] px-4">
@@ -212,7 +339,7 @@ function Request() {
                                 Go back
                             </button>
                             <button
-                                className={`px-4 py-2 rounded-lg ${issue ? "bg-blue-500 text-white" : "bg-gray-400 cursor-not-allowed"
+                                className={`px-4 py-2 rounded-lg ${issue ? "bg-[#52AB98] text-white" : "bg-gray-400 cursor-not-allowed"
                                     }`}
                                 onClick={() => issue && setStep(2)} // ✅ only continue if selected
                             >
@@ -295,7 +422,7 @@ function Request() {
                         </button>
                         <button
                             className={`px-6 py-2 rounded-xl ${selectedBrand && model
-                                ? "bg-blue-600 text-white hover:bg-blue-700"
+                                ? "bg-[#52AB98] text-white hover:bg-[#2e5f54]"
                                 : "bg-gray-400 text-white cursor-not-allowed"
                                 }`}
                             onClick={() => selectedBrand && model && setStep(3)}
@@ -340,7 +467,7 @@ function Request() {
                             Go back
                         </button>
                         <button
-                            className={`px-4 py-2 rounded-lg ${serviceType ? "bg-blue-500 text-white" : "bg-gray-400 cursor-not-allowed"}`}
+                            className={`px-4 py-2 rounded-lg ${serviceType ? "bg-[#52AB98] text-white" : "bg-gray-400 cursor-not-allowed"}`}
                             onClick={() => serviceType && urgency && setStep(4)}
                         >
                             Next
@@ -411,12 +538,12 @@ function Request() {
                     <div className="flex justify-between pt-4 mt-4">
                         <button
                             className="px-4 py-2 bg-gray-300 rounded-lg"
-                            onClick={() => setStep(3)} // ✅ fixed typo
+                            onClick={() => setStep(3)}
                         >
                             Go back
                         </button>
                         <button
-                            className={`px-4 py-2 rounded-lg ${(address && city && pincode) ? "bg-blue-500 text-white" : "bg-gray-400 cursor-not-allowed"}`}
+                            className={`px-4 py-2 rounded-lg ${(address && city && pincode) ? "bg-[#52AB98] text-white" : "bg-gray-400 cursor-not-allowed"}`}
                             onClick={() => address && city && pincode && setStep(5)}
                         >
                             Next
@@ -439,7 +566,7 @@ function Request() {
 
                     <div
                         className={`w-full p-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition
-        ${dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 bg-white"}`}
+        ${dragActive ? "border-[#346d61] bg-[#52AB98]" : "border-gray-300 bg-white"}`}
                         onDragOver={(e) => {
                             e.preventDefault();
                             setDragActive(true);
@@ -487,14 +614,14 @@ function Request() {
                     {/* Navigation buttons */}
                     <div className="flex justify-between pt-4 mt-4">
                         <button
-                            className="px-4 py-2 bg-gray-300 rounded-lg"
-                            onClick={() => setStep(4)} // ✅ fixed typo
+                            className="px-4 py-2 mr-10 bg-gray-300 rounded-lg"
+                            onClick={() => setStep(4)}
                         >
                             Go back
                         </button>
                         <button
-                            className={`px-4 py-2 rounded-lg ${ uploadedImages ? "bg-blue-500 text-white" : "bg-gray-400 cursor-not-allowed"}`}
-                            onClick={() => uploadedImages &&  setStep(6)}
+                            className={`px-4 py-2 rounded-lg ml-10 ${uploadedImages ? "bg-[#52AB98] text-white" : "bg-gray-400 cursor-not-allowed"}`}
+                            onClick={() => uploadedImages && setStep(6)}
                         >
                             Next
                         </button>
@@ -504,28 +631,166 @@ function Request() {
             )}
 
 
-            {/* Step 2: Confirmation or next step */}
-            {step === 8 && (
-                <div className="text-center">
-                    <h1 className="text-2xl font-semibold text-gray-800">Summary</h1>
-                    <p className="mt-4 text-gray-700">
-                        <strong>Device:</strong> {selected} <br />
-                        <strong>Issue:</strong> {issue} <br />
-                        {issue.toLowerCase() === "other" && (
-                            <>
-                                <strong>Description:</strong> {otherText}
-                            </>
-                        )}
-                    </p>
-                    <button
-                        className="mt-6 px-4 py-2 bg-blue-500 text-white rounded-lg"
-                        onClick={() => alert("Submitted! 🚀")}
-                    >
-                        Submit
-                    </button>
+            {/*choice the tecnician*/}
+            {step === 6 && (
+                <div className="flex flex-col text-center items-center">
+                    <h1 className="text-2xl font-semibold text-gray-800">Available Technicians</h1>
+
+                    {technicians.length > 0 ? (<>
+                        <div className="grid grid-cols-1 justify-items-center mt-4 w-5/6 max-w-4xl h-96 max-h-11/12 overflow-y-auto hide-scrollbar bg-[#BBBDBC] md:grid-cols-3 rounded-xl">
+                            {technicians.map((tech, index) => (
+                                <div
+                                    key={tech._id || index}
+                                    className={`bg-white p-4 m-4 rounded-xl shadow-md text-center flex flex-col items-center ${selectTechnician?._id === tech._id ? "border-4 border-[#2B6777]" : ""
+                                        }`}
+
+                                    onClick={() => setSelectTechnician(tech)}
+                                >
+                                    <img
+                                        src={tech.pic[0]}
+                                        alt={tech.name}
+                                        className="w-24 h-24 rounded-full mx-16 object-cover border"
+                                    />
+                                    <h2 className="text-lg font-semibold text-[#2B6777]">{tech.name}</h2>
+                                    <p className="text-gray-600">{tech.shopName}</p>
+                                    <p className="text-sm text-gray-500">Experience: {tech.experience}</p>
+                                    <p className="text-sm text-gray-500">Charges: {tech.prize}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="m-5 w-5/6 max-w-4xl flex justify-around">
+                            <button onClick={() => setStep(5)} className="px-4 py-2 mr-10 bg-gray-300 rounded-lg">
+                                Go Back
+                            </button>
+                            <button onClick={() => selectTechnician && setStep(7)}
+                                className={`px-4 py-2 rounded-lg 
+        ${selectTechnician ? "bg-[#52AB98] text-white" : "bg-gray-400 cursor-not-allowed"}`}
+                                disabled={!selectTechnician}>
+                                Submit
+                            </button>
+                        </div>
+                    </>
+                    ) : (
+                        <p className="mt-4 text-gray-600">No technicians found for this area.</p>
+                    )}
+                </div>
+            )
+            }
+
+            {/* Step 7: Review */}
+            {step === 7 && (
+                <div className="max-w-3xl mx-auto p-6">
+
+                    {/* DEVICE LINE */}
+                    <div className="flex items-center my-6">
+                        <div className="flex border border-t"></div>
+                        <span className="mx-4 text-gray-700 font-medium">Device Information</span>
+                        <div className="flex border-t"></div>
+                    </div>
+
+                    <p><strong>Device:</strong> {selected}</p>
+                    <p><strong>Brand:</strong> {selectedBrand}</p>
+                    <p><strong>Model:</strong> {model}</p>
+                    {imei && <p><strong>IMEI:</strong> {imei}</p>}
+
+                    {/* ISSUE LINE */}
+                    <div className="flex items-center my-6">
+                        <div className="flex border-t"></div>
+                        <span className="mx-4 text-gray-700 font-medium">Issue Details</span>
+                        <div className="flex border-t"></div>
+                    </div>
+
+                    <p><strong>Issue:</strong> {issue}</p>
+                    {issue?.toLowerCase() === "other" && (
+                        <p><strong>Description:</strong> {otherText}</p>
+                    )}
+
+                    {/* SERVICE LINE */}
+                    <div className="flex items-center my-6">
+                        <div className="flex border-t"></div>
+                        <span className="mx-4 text-gray-700 font-medium">Service Information</span>
+                        <div className="flex border-t"></div>
+                    </div>
+
+                    <p><strong>Service:</strong> {serviceType}</p>
+                    <p><strong>Urgency:</strong> {urgency}</p>
+
+                    {/* ADDRESS LINE */}
+                    <div className="flex items-center my-6">
+                        <div className="flex border-t"></div>
+                        <span className="mx-4 text-gray-700 font-medium">Address</span>
+                        <div className="flex border-t"></div>
+                    </div>
+
+                    <p><strong>Address:</strong> {address}</p>
+                    <p><strong>City:</strong> {city}</p>
+                    <p><strong>Pincode:</strong> {pincode}</p>
+
+                    {/* IMAGES LINE */}
+                    <div className="flex items-center my-6">
+                        <div className="flex border-t"></div>
+                        <span className="mx-4 text-gray-700 font-medium">Uploaded Images</span>
+                        <div className="flex border-t"></div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                        {uploadedImages?.map((img, i) => (
+                            <img
+                                key={i}
+                                src={img.preview}
+                                className="w-full h-24 object-cover rounded-md border"
+                            />
+                        ))}
+                    </div>
+
+                    {/* TECHNICIAN LINE */}
+                    <div className="flex items-center my-6">
+                        <div className="flex border-t"></div>
+                        <span className="mx-4 text-gray-700 font-medium">Technician</span>
+                        <div className="flex border-t"></div>
+                    </div>
+
+                    {selectTechnician ? (
+                        <div className="flex items-center gap-4">
+                            <img
+                                src={selectTechnician?.pic?.[0] || "/default.jpg"}
+                                className="w-20 h-20 rounded-full object-cover border"
+                            />
+                            <div>
+                                <p><strong>Name:</strong> {selectTechnician.name}</p>
+                                <p><strong>Shop:</strong> {selectTechnician.shopName}</p>
+                                <p><strong>Experience:</strong> {selectTechnician.experience}</p>
+                                <p><strong>Charges:</strong> {selectTechnician.prize}</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <p>No technician selected.</p>
+                    )}
+
+                    {/* BUTTONS */}
+                    <div className="flex justify-between mt-8">
+                        <button
+                            onClick={() => setStep(6)}
+                            className="px-4 py-2 bg-gray-300 rounded-lg"
+                        >
+                            Back
+                        </button>
+
+                        <button
+                            onClick={() => handleFinalSubmit()}
+                            className="px-6 py-2 bg-[#52AB98] text-white rounded-lg hover:bg-[#2e5f54]"
+                        >
+                            Confirm & Submit
+                        </button>
+                    </div>
+
                 </div>
             )}
-        </div>
+
+
+
+
+        </div >
     );
 }
 

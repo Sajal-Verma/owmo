@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useContext, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axiosInstance from "../utils/authInterceptor";
 import { useNavigate } from "react-router-dom";
-import Cookies from "js-cookie";
 import { toast } from "react-toastify";
+import { store } from "../context/StoreProvider"
 
 export default function Tab({ tabs }) {
 
@@ -12,20 +12,18 @@ export default function Tab({ tabs }) {
   //store the index of array of object
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const { logoutUser, user } = useContext(store);
+  const [name, setName] = useState("");
+  const [preview, setPreview] = useState(null);
 
   //API for logout
   const LogOutApi = async () => {
     try {
       const res = await axiosInstance.post("/user/logout");
-
       if (res.status === 200) {
         toast.success("✅ Logout successful!");
-
-        // Remove user cookie
-        Cookies.remove("user", { path: "/" });
-
-        // Redirect to home/dashboard
-        navigate("/"); // make sure navigate is imported from react-router-dom
+        logoutUser();
+        navigate("/");
       } else {
         toast.error("❌ Logout failed. Try again.");
       }
@@ -34,45 +32,65 @@ export default function Tab({ tabs }) {
     }
   };
 
+
+  //some information of the user
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!user?.id) return;
+      try {
+        const res = await axiosInstance.get(`/user/show/${user.id}`);
+        if (res.status !== 200) {
+          toast.error(res.data?.message || "Failed to load user data");
+          return;
+        }
+
+        const u = res.data.user;
+        console.log(u);
+        setName(u.name || "");
+        setPreview(u.pic?.[0]?.url || null);
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+        toast.error("Something went wrong while loading data");
+      }
+    };
+    fetchUserData();
+  }, [user]);
+
   return (
     <div className="flex flex-col justify-center items-center min-h-screen bg-[#F2F0EF]">
-      <h1>Dasboard</h1>
-      <div className="flex flex-col md:flex-row gap-6 w-5/6 max-w-4xl">
+      <div className="grid md:grid-cols-[14rem_1fr] gap-6 w-5/6 max-w-4xl my-6">
         {/* Left Sidebar */}
-        <div className="w-full md:w-56 bg-[#BBBDBC] shadow-md rounded-md flex flex-col items-center p-4">
+        <div className="bg-[#BBBDBC] shadow-md rounded-md flex flex-col items-center p-4">
           {/* Top section */}
           <div className="flex flex-col items-center">
             {/* Avatar */}
-            <div className="w-16 h-16 bg-purple-200 rounded-full flex items-center justify-center">
-              <span className="text-2xl text-gray-700">👤</span>
-            </div>
-
+            <img
+              src={preview || "/default-avatar.png"}
+              alt="Profile"
+              className="w-16 h-16 rounded-full object-cover bg-gray-200"
+            />
             {/* Username */}
-            <h2 className="mt-2 text-[#2B6777] font-semibold">Username</h2>
+            <h2 className="mt-2 text-[#2B6777] font-semibold">{name}</h2>
             <hr className="w-full border-gray-400 my-2" />
           </div>
 
           {/* Menu */}
-          <div className="text-center space-y-1 text-black font-medium w-full m-2">
+          <div className="text-center space-y-1 text-black font-medium w-full m-2 h-40 overflow-y-auto hide-scrollbar rounded-xl drop-shadow-md">
             {tabs.map((tab, index) => (
               <button
                 key={index}
                 onClick={() => setActiveIndex(index)}
-                className={`w-full p-2 text-left rounded-xl transition-colors bg-[#aeaeae] flex flex-row justify-between ${activeIndex === index
-                  ? "bg-[#cccfcd] font-semibold border-1 border-[#3c8da3]"
-                  : "hover:bg-[#dddedd]"
+                className={`w-full p-2 text-left rounded-xl transition-colors flex justify-between ${activeIndex === index
+                    ? "bg-[#cccfcd] font-semibold border border-[#3c8da3]"
+                    : "bg-[#aeaeae] hover:bg-[#dddedd]"
                   }`}
               >
-                <div>
-                  {tab.label}
-                </div>
-                <div className={` rounded-xl size-6 text-center ${activeIndex === index
-                  ? "bg-[#cccfcd] font-semibold text-[#3c8da3]"
-                  : "hover:bg-[#dddedd]"
-                  }`}>
+                <span>{tab.label}</span>
+                <span className={activeIndex === index ? "text-[#3c8da3]" : "text-gray-700"}>
                   &gt;
-                </div>
+                </span>
               </button>
+
             ))}
           </div>
 
@@ -80,18 +98,18 @@ export default function Tab({ tabs }) {
           <button className="mt-4 text-green-700 font-semibold hover:underline" onClick={() => LogOutApi()}>
             Log Out
           </button>
-
-          {/* Repair Button */}
+            {/* 
           <Link
             to="/Request"
             className="mt-4 bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 w-full text-center"
           >
             Book a Repair
           </Link>
+            */}
         </div>
 
         {/* Right Content */}
-        <div className="bg-amber-950 shadow-md rounded-md p-4 flex-1 overflow-y-auto scrollbar-hide">
+        <div className="bg-white rounded-2xl h-96 shadow-lg overflow-y-auto hide-scrollbar">
           {tabs[activeIndex].content}
         </div>
       </div>

@@ -78,7 +78,7 @@ export default function Register() {
       setErrors(validationErrors);
     } else {
       setErrors({});
-        RegisterApi();
+      RegisterApi();
     }
   };
 
@@ -106,10 +106,10 @@ export default function Register() {
         toast.success("Registration successful! Please login.");
         handleClear();
         navgation("/login");
-      if (res.status === 400) {
-        toast.info("User already exists with this email");
-        handleClear();
-      }
+        if (res.status === 400) {
+          toast.info("User already exists with this email");
+          handleClear();
+        }
       } else {
         toast.error("Registration failed. Try again.");
       }
@@ -127,11 +127,13 @@ export default function Register() {
         <div className="bg-[#52AB98] text-white flex flex-col items-center justify-center md:w-1/2 w-full p-6 md:rounded-l-lg">
           <div className="text-center">
             <div className="flex justify-center mb-4">
-              <img
-                src={OwmoLog}
-                alt="logo"
-                className="w-38"
-              />
+              <Link to={"/"}>
+                <img
+                  src={OwmoLog}
+                  alt="logo"
+                  className="w-38"
+                />
+              </Link>
             </div>
             <p className="text-3xl">Register once</p>
             <p className="text-2xl">Repair smarter forever</p>

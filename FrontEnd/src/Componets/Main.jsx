@@ -8,25 +8,33 @@ import Login from '../Pages/Login'
 import Register from '../Pages/Register'
 import Request from '../Pages/Request'
 import Profile from '../Pages/Profiles'
-import ProfileData from './ProfileData'
+import ForgotPassword from '../Pages/forgotPassword'
+import Quiz from '../Pages/Quiz'
+import UserDetails from '../Pages/UserDetails'
 
 
 function Main() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} /> {/* matches / */}
-          <Route path="/about" element={<About />} />
-          {/* <Route path="contact" element={<Contact />} /> */}
-          <Route path="/faq" element={<Faq />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Register />} />
-          <Route path="/Request" element={<Request/>}/>
-          <Route path='/lala' element={<Profile/>}/>
-        </Route>
-      </Routes>
-    </Router>
+    <div>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Home />} /> {/* matches / */}
+            <Route path="/about" element={<About />} />
+            {/* <Route path="contact" element={<Contact />} /> */}
+            <Route path="/faq" element={<Faq />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Register />} />
+            <Route path="/Request" element={<Request />} />
+            <Route path='/lala' element={<Profile />} />
+            <Route path='/forgot' element={<ForgotPassword />} />
+            <Route path='/Quiz' element={<Quiz />} />
+            <Route path="/user-details/:id" element={<UserDetails />} />
+            <Route path="/request-details/:id" element={<requestDetails />} />
+          </Route>
+        </Routes>
+      </Router>
+    </div>
   )
 }
 

@@ -1,20 +1,25 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import OwmoLog from '../assets/image/owmo.png';
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import axiosInstance from "../api/axios";
-import Cookies from "js-cookie";
+import { store } from "../context/StoreProvider";
+
 
 
 //login componet
 export default function Login() {
 
+  const { loginUser } = useContext(store);
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
-
   const [errors, setErrors] = useState({});
+  const [pop, setPop] = useState(false);
+
+
   //for the navigate through hook
   const navigate = useNavigate();
 
@@ -53,26 +58,42 @@ export default function Login() {
 
 
   // Login API
-const LoginApi = async () => {
-  try {
-    const res = await axiosInstance.post("/user/login", formData);
+  const LoginApi = async () => {
+    try {
+      const res = await axiosInstance.post("/user/login", formData);
 
-    if (res.status === 200) {
-      toast.success("✅ Login successful!");
+      if (res.status === 200) {
 
-      // Save safe user info (not tokens, since they are in httpOnly cookies)
-      Cookies.set("user", JSON.stringify(res.data.user), { expires: 5/24 , path: "/" });
+        console.log(res.data);
+        console.log("this is type of user:" + res.data.role + "and the hired :" + res.data.hired);
+        if ((res.data.user.role === "technician" && !res.data.user.hired)) {
+          
+          /*
+          if(!res.data.user.pass){
+            navigate("/Quiz");
+          }
+          console.log("this is pop");
+           */
+          setPop(true);
+        }
+        else {
 
-      // Redirect to dashboard/home
-      navigate("/");
-    } else {
-      toast.error("❌ Login failed. Try again.");
+          toast.success("✅ Login successful!");
+
+          //set id and user in useContext
+          loginUser(res.data.user);
+
+          // Redirect to dashboard/home
+          navigate("/");
+        }
+      } else {
+        toast.error("❌ Login failed. Try again.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "❌ Something went wrong.");
     }
-  } catch (error) {
-    console.error(error);
-    toast.error(error.response?.data?.message || "❌ Something went wrong.");
-  }
-};
+  };
 
   //ui desing of the Login Page
   return (
@@ -125,7 +146,7 @@ const LoginApi = async () => {
 
           {/* Extra Links */}
           <div className="flex justify-between text-sm mt-4 text-gray-600">
-            <a href="#" className="hover:underline">Forgot Password?</a>
+            <Link to = {"/forgot"} className="hover:underline">Forgot Password?</Link>
             <Link to={"/signup"} className="hover:underline">Sign up</Link>
           </div>
         </div>
@@ -142,6 +163,32 @@ const LoginApi = async () => {
           <p className="text-4xl">Welcome</p>
         </div>
       </div>
+
+      {/*------------------Popup---------------------------------*/}
+      {pop && (
+        <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50">
+          <div className="bg-[#BBBDBC] p-6 rounded-2xl shadow-lg w-80 text-center">
+            <h2 className="text-2xl font-semibold mb-3 text-gray-800">Verification in progress</h2>
+            <p className="text-gray-600 mb-4">
+              Your technician profile is currently under verification by the Admin. You will be able to log in once all hiring steps are completed.
+            </p>
+            <p className="text-gray-600 mb-4">
+              We will notify you immediately once your account is approved.
+            </p>
+            <p className="text-gray-600 mb-4">
+              Thank you for your patience.
+            </p>
+            <Link to="/">
+            <button
+              onClick={() => setPop(false)}
+              className="w-full bg-[#52AB98] text-white py-2 rounded-lg hover:bg-[#3e8374] transition"
+            >
+              ok
+            </button>
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
