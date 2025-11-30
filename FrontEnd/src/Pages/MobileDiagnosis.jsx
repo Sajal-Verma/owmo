@@ -1,0 +1,124 @@
+import { useState, useRef, useEffect } from "react";
+import axiosInstance from "../utils/authInterceptor";
+import { toast } from "react-toastify";
+
+const MobileDiagnosis = () => {
+  const [messages, setMessages] = useState([
+    {
+      sender: "ai",
+      text: "👋 Hello! Describe the issue with your phone and I will diagnose it using AI.",
+    },
+  ]);
+
+  const [issue, setIssue] = useState("");
+  const [loading, setLoading] = useState(false);
+  const chatEndRef = useRef(null);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleDiagnose = async () => {
+    if (!issue.trim()) {
+      return toast.error("Please describe the issue!");
+    }
+
+    // Push user message to chat
+    setMessages((prev) => [...prev, { sender: "user", text: issue }]);
+
+    const userText = issue;
+    setIssue(""); // clear input
+    setLoading(true);
+
+    try {
+      const res = await axiosInstance.post("/user/diagnose", { issue: userText });
+
+      // AI chat response
+      const aiMessage = `
+🛠 **Diagnosis Result**
+**Issue Provided:** ${res.data.issue}
+**Prediction:** ${res.data.prediction}
+**Confidence:** ${(res.data.confidence * 100).toFixed(2)}%
+      `;
+
+      setMessages((prev) => [...prev, { sender: "ai", text: aiMessage }]);
+      toast.success("Diagnosis Completed!");
+
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong!");
+
+      setMessages((prev) => [
+        ...prev,
+        { sender: "ai", text: "❌ I could not diagnose the issue. Please try again." },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-100">
+
+      {/* HEADER */}
+      <div className="bg-blue-600 text-white p-4 text-center text-lg font-semibold shadow-md">
+        🤖 AI Mobile Diagnosis
+      </div>
+
+      {/* CHAT WINDOW */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`flex ${
+              msg.sender === "user" ? "justify-end" : "justify-start"
+            }`}
+          >
+            <div
+              className={`max-w-[75%] p-3 rounded-xl shadow-md whitespace-pre-wrap ${
+                msg.sender === "user"
+                  ? "bg-blue-600 text-white rounded-br-none"
+                  : "bg-white text-gray-800 rounded-bl-none"
+              }`}
+            >
+              {msg.text}
+            </div>
+          </div>
+        ))}
+
+        {/* AI TYPING INDICATOR */}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="bg-white p-3 rounded-xl shadow-md">
+              <span className="animate-pulse">AI is diagnosing...</span>
+            </div>
+          </div>
+        )}
+
+        <div ref={chatEndRef}></div>
+      </div>
+
+      {/* INPUT SECTION */}
+      <div className="p-4 bg-white flex gap-2 border-t shadow-md">
+        <input
+          value={issue}
+          onChange={(e) => setIssue(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleDiagnose()}
+          placeholder="Describe your phone issue…"
+          className="flex-1 p-3 border rounded-lg focus:ring focus:ring-blue-300"
+        />
+
+        <button
+          onClick={handleDiagnose}
+          disabled={loading}
+          className="px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default MobileDiagnosis;
