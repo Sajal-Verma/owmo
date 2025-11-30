@@ -157,14 +157,14 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log(email);
+    //console.log(email);
 
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" });
     }
 
     const user = await User.findOne({ email: email.toLowerCase() });
-    console.log(user);
+    //console.log(user);
     if (!user) {
       return res.status(401).json({ message: "user not find" });
     }
@@ -209,6 +209,7 @@ export const login = async (req, res) => {
           role: user.role,
           hired: user.hired,
           pass: user.pass,
+          name: user.name,
         },
       });
   } catch (error) {
@@ -228,7 +229,7 @@ export const update = async (req, res) => {
   try {
     const userId = req.params.id;
     const updates = { ...req.body };
-    console.log(update);
+    //console.log(update);
 
     // define uploadedLinks at top
     let uploadedLinks = [];
@@ -319,7 +320,7 @@ export const del = async (req, res) => {
     const { id } = req.params;
 
     const user = await User.findById(id);
-    const deletedUser = user.email;
+    const deletedUser = user;
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -338,50 +339,51 @@ export const del = async (req, res) => {
       }
     }
 
-    // Delete user document from DB
-    await user.deleteOne();
-
+    
     const mess = `
-  <div style="font-family: Arial, sans-serif; padding: 24px; color: #333;">
+    <div style="font-family: Arial, sans-serif; padding: 24px; color: #333;">
     <h2 style="color: #ff3b30;">OWMO Account Update</h2>
-
+    
     <p>Dear ${deletedUser.name},</p>
 
     <p>
       We want to inform you that your account on the 
       <b>OWMO Smart Mobile Repairing System</b> has been 
       <span style="color: #ff3b30; font-weight: bold;">deleted by the administrator</span>.
-    </p>
-
+      </p>
+      
     <p>
       If you believe this action was taken in error or need more information,  
       please contact our support team.
-    </p>
+      </p>
 
     <br>
 
     <a href="https://your-owmo-support-url.com"
-      style="display: inline-block; padding: 10px 18px; 
-             background: #ff3b30; color: #fff; 
-             text-decoration: none; border-radius: 6px;">
-      Contact Support
+    style="display: inline-block; padding: 10px 18px; 
+    background: #ff3b30; color: #fff; 
+    text-decoration: none; border-radius: 6px;">
+    Contact Support
     </a>
-
+    
     <br><br>
-
+    
     <p>Thank you for your understanding.<br><b>– OWMO Support Team</b></p>
-
+    
     <hr style="margin-top: 26px; border-top: 1px solid #ddd;" />
-
+    
     <p style="font-size: 12px; color: #777;">
-      This is an automated email. Please do not reply.
+    This is an automated email. Please do not reply.
     </p>
-  </div>
-`;
-
-
+    </div>
+    `;
+    
+    
     await sendEmail(deletedUser.email, "Your OWMO Account Has Been Deleted", mess);
-
+    
+    // Delete user document from DB
+    await user.deleteOne();
+    
     return res.status(200).json({ message: "User deleted successfully", user });
   } catch (error) {
     console.error("Error deleting user:", error);
@@ -452,7 +454,7 @@ export const see = async (req, res) => {
         prize,
       };
     }
-    console.log(newData);
+    //console.log(newData);
 
     return res
       .status(200)
@@ -536,7 +538,7 @@ export const showAll = async (req, res) => {
     const { id } = req.params;
     const { role } = req.body;
 
-    console.log("Role received:", role);
+    //console.log("Role received:", role);
 
     const admin = await User.findById(id);
     if (!admin) return res.status(404).json({ message: "Admin not found" });

@@ -1,4 +1,5 @@
 import Request from "../database/requestDB.js";
+import Chat from "../database/ChatModel.js";
 
 
 
@@ -145,7 +146,13 @@ export const remove = async (req, res) => {
       return res.status(404).json({ message: "Request not found" });
     }
 
-    await request.deleteOne(); // or Request.findByIdAndDelete(id);
+    // Delete associated chat messages
+    const roomId = "request_" + id;
+    await Chat.deleteMany({ roomId });
+    console.log("Chat messages deleted for:", roomId);
+
+    // Delete request itself
+    await request.deleteOne();
 
     return res.status(200).json({ message: "Request deleted successfully" });
 
@@ -154,6 +161,7 @@ export const remove = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 
 //only show by the id 
@@ -205,6 +213,31 @@ export const showid = async (req, res) => {
   } catch (error) {
     console.error("Error in showid controller:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+// Get all messages for a specific request
+export const getMessagesByRequest = async (req, res) => {
+  const { requestId } = req.params;
+  const roomId = "request_" + requestId;
+
+  try {
+    console.log("Fetching messages for room:", roomId);
+
+    // Fast DB query (DESC)
+    const messages = await Chat.find({ roomId })
+      .sort({ createdAt: -1 })  // newest first
+      .lean();
+
+    console.log("Messages found:", messages.length);
+
+    // Reverse so frontend shows old → new
+    res.status(200).json(messages.reverse());
+  } catch (error) {
+    console.error("Error fetching chat messages:", error);
+    res.status(500).json({ message: "Failed to fetch messages" });
   }
 };
 
