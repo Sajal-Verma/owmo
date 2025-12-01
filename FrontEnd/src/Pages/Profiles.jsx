@@ -5,6 +5,8 @@ import ProfileData from "../Componets/ProfileData";
 import UsersGrid from "./allUser";
 import { store } from "../context/StoreProvider";
 import { useContext } from "react";
+import MobileDiagnosis from "./MobileDiagnosis";
+import ChatRequests from "./ChatRequests";
 
 
 /*
@@ -20,7 +22,7 @@ export default function Profile() {
     case "admin":
       tabData = [
         { label: "My Profile", content: <ProfileData /> },
-        { label: "Users", content: <UsersGrid role="user" />},
+        { label: "Users", content: <UsersGrid role="user" /> },
         { label: "Technicians", content: <UsersGrid role="technician" /> },
         { label: "Requests", content: <Dashboard /> },
         { label: "Update Quiz", content: <Dashboard /> },
@@ -31,7 +33,7 @@ export default function Profile() {
       tabData = [
         { label: "My Profile", content: <ProfileData /> },
         { label: "Requests", content: <Dashboard /> },
-        { label: "Chat", content: "radhe radhe" },
+        { label: "Chat", content: <ChatRequests /> },
         { label: "Dashboard", content: <Dashboard /> },
       ];
       break;
@@ -40,8 +42,8 @@ export default function Profile() {
       tabData = [
         { label: "My Profile", content: <ProfileData /> },
         { label: "All Requests", content: <Dashboard /> },
-        { label: "Free Diagnostic", content: "radhe radhe" },
-        { label: "Chat", content: <Dashboard /> },
+        { label: "Free Diagnostic", content: <MobileDiagnosis /> },
+        { label: "Chat", content: <ChatRequests /> },
       ];
   }
 

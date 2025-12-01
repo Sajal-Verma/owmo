@@ -24,7 +24,10 @@ const UserDetails = () => {
     experience: "",
     rating: "",
     role: "",
+    hired: false,  // ✅ Added
   });
+
+
 
   // FETCH USER
   useEffect(() => {
@@ -48,7 +51,9 @@ const UserDetails = () => {
           experience: u.experience || "",
           rating: u.rating || "",
           role: u.role || "",
+          hired: u.hired || false,  // ✅ This was missing
         });
+
         console.log(formData.role);
 
         setPreview(u.pic?.length ? u.pic[0].url : null);
@@ -71,14 +76,16 @@ const UserDetails = () => {
 
       if (res.status === 200) {
         toast.success("Technician hired successfully!");
-      } else {
-        toast.error(res.data?.message || "Update failed");
+
+        // 🔥 Update state so button disappears instantly
+        setFormData((prev) => ({ ...prev, hired: true }));
       }
     } catch (err) {
       console.error("Error updating profile:", err);
       toast.error("Something went wrong while updating profile");
     }
   };
+
 
 
 
@@ -194,14 +201,16 @@ const UserDetails = () => {
           </button>
 
 
-          {formData.role === "technician" &&
+          {formData.role === "technician" && !formData.hired && (
             <button
               onClick={handleHired}
-              className="bg-gray-600 text-white px-6 py-2 rounded-lg pointer-coarse:"
+              className="bg-gray-600 text-white px-6 py-2 rounded-lg"
             >
               Hired
             </button>
-          }
+          )}
+
+
         </div>
       </div>
     </div>

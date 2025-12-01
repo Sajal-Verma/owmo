@@ -8,6 +8,7 @@ import {
 
 import axiosInstance from "../utils/authInterceptor";
 import { useEffect, useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import { AgGridReact } from "ag-grid-react";
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from "ag-grid-community";
 import { toast } from "react-toastify";
@@ -15,13 +16,21 @@ import { store } from "../context/StoreProvider";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-const COLORS = ["#4CAF50", "#FF5252", "#FFC107"]; // Completed, Pending, In-progress
+// Status colors map
+const STATUS_COLORS = {
+  completed: "green",
+  pending: "red",
+  "in progress": "orange",
+  assigned: "purple",
+  cancelled: "gray",
+};
 
 const Dashboard = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const { user } = useContext(store);
+  const navigate = useNavigate();
 
   const columnDefs = [
     { headerName: "Brand", field: "brand", sortable: true, filter: true, flex: 1 },
@@ -43,19 +52,45 @@ const Dashboard = () => {
       headerName: "Status",
       field: "status",
       flex: 1,
-      cellRenderer: (p) => {
-        const s = p.value?.toLowerCase();
-        let color = "blue";
+      cellRenderer: (params) => {
+        const value = (params.value || "").toLowerCase(); // normalize
+        let color = "blue"; // default
 
-        if (s === "completed") color = "green";
-        else if (s === "pending") color = "red";
-        else if (s === "in progress") color = "orange";
+        switch (value) {
+          case "completed":
+            color = "green";
+            break;
+          case "pending":
+            color = "red";
+            break;
+          case "in progress":
+          case "in_progress":
+            color = "orange";
+            break;
+          case "assigned":
+            color = "purple";
+            break;
+          case "cancelled":
+            color = "gray";
+            break;
+          default:
+            color = "blue";
+        }
 
         return (
-          <span style={{ fontWeight: "bold", color }}>{p.value}</span>
+          <span
+            style={{
+              fontWeight: "bold",
+              color,
+              textTransform: "capitalize",
+            }}
+          >
+            {params.value}
+          </span>
         );
       },
     },
+
   ];
 
   const myTheme = themeQuartz.withParams({
@@ -82,7 +117,7 @@ const Dashboard = () => {
         });
 
 
-        
+
         if (res.status === 200 || res.status === 201) {
           const reqs = res.data.requests || [];
           reqs.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
@@ -107,18 +142,22 @@ const Dashboard = () => {
   };
 
   // Pie chart counts
-  const completeCount = requests.filter((r) => r.status === "completed").length;
-  const pendingCount = requests.filter((r) => r.status === "pending").length;
-  const progressCount = requests.filter((r) => r.status === "in progress").length;
+  const getStatusCount = (status) =>
+    requests.filter(
+      (r) => (r.status || "").toLowerCase() === status.toLowerCase()
+    ).length;
 
+  // Pie chart data with colors
   const chartData = [
-    { name: "Completed", value: completeCount },
-    { name: "Pending", value: pendingCount },
-    { name: "In Progress", value: progressCount },
+    { name: "Completed", value: getStatusCount("Completed"), color: STATUS_COLORS.completed },
+    { name: "Pending", value: getStatusCount("Pending"), color: STATUS_COLORS.pending },
+    { name: "In Progress", value: getStatusCount("In Progress"), color: STATUS_COLORS["in progress"] },
+    { name: "Assigned", value: getStatusCount("Assigned"), color: STATUS_COLORS.assigned },
+    { name: "Cancelled", value: getStatusCount("Cancelled"), color: STATUS_COLORS.cancelled },
   ];
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gray-100 py-10 px-4">
+    <div className=" flex flex-col items-center bg-gray-100 ">
 
       {loading ? (
         <p className="text-gray-600">⏳ Loading...</p>
@@ -127,46 +166,36 @@ const Dashboard = () => {
       ) : (
         <>
           {/* Pie Chart */}
-          <div className="w-40 h-40">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="w-40 h-40 mb-20">
+            <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
                   data={chartData}
+                  dataKey="value"
+                  nameKey="name"
                   cx="50%"
                   cy="50%"
                   outerRadius={80}
-                  dataKey="value"
-                  label={(p) => `${p.name}: ${p.value}`}
                 >
                   {chartData.map((entry, index) => (
-                    <Cell key={index} fill={COLORS[index]} />
+                    <Cell key={index} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
+
           </div>
 
           {/* Legend */}
-          <div className="flex gap-6 mt-3 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500" />
-              <span>Completed ({completeCount})</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <span>Pending ({pendingCount})</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-yellow-500" />
-              <span>In Progress ({progressCount})</span>
-            </div>
+          <div className="flex gap-6 text-sm">
+            {chartData.map((item) => (
+              <div key={item.name} className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                <span>{item.name} ({item.value})</span>
+              </div>
+            ))}
           </div>
-
-          <h2 className="text-lg font-bold text-gray-700 mt-6">Requests</h2>
-
           {/* AG Grid */}
           <div
             className="ag-theme-quartz mt-6 w-full max-w-5xl"

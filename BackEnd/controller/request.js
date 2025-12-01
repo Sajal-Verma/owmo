@@ -222,19 +222,19 @@ export const showid = async (req, res) => {
 export const getMessagesByRequest = async (req, res) => {
   const { requestId } = req.params;
   const roomId = "request_" + requestId;
+  console.log("Request ID:", requestId);
 
   try {
     console.log("Fetching messages for room:", roomId);
 
     // Fast DB query (DESC)
-    const messages = await Chat.find({ roomId })
-      .sort({ createdAt: -1 })  // newest first
-      .lean();
+    const messages = await Chat.find({ roomId }).sort({ createdAt: 1 }).lean();
 
+    console.log("Fetched messages:", messages);
     console.log("Messages found:", messages.length);
 
     // Reverse so frontend shows old → new
-    res.status(200).json(messages.reverse());
+    res.status(200).json(messages);
   } catch (error) {
     console.error("Error fetching chat messages:", error);
     res.status(500).json({ message: "Failed to fetch messages" });

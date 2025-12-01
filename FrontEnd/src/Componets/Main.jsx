@@ -11,7 +11,8 @@ import Profile from '../Pages/Profiles'
 import ForgotPassword from '../Pages/forgotPassword'
 import Quiz from '../Pages/Quiz'
 import UserDetails from '../Pages/UserDetails'
-
+import RequestDetails from '../Pages/RequestDetails'
+import ChatRoom from '../Pages/ChatRoom'
 
 function Main() {
   return (
@@ -30,7 +31,8 @@ function Main() {
             <Route path='/forgot' element={<ForgotPassword />} />
             <Route path='/Quiz' element={<Quiz />} />
             <Route path="/user-details/:id" element={<UserDetails />} />
-            <Route path="/request-details/:id" element={<requestDetails />} />
+            <Route path="/request-details/:id" element={<RequestDetails/>} />
+            <Route path="/request-Chats/:id" element={<ChatRoom/>} />
           </Route>
         </Routes>
       </Router>

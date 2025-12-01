@@ -22,7 +22,7 @@ const socketConnection = (server) => {
       const newMsg = await Chat.create(data);
 
       // Send message to room
-      io.to(data.roomId).emit("receiveMessage", newMsg);
+      io.to(data.roomId).emit("receiveMessage", newMsg.toObject());
     });
 
     // Leave room

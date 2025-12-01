@@ -1,14 +1,18 @@
 import { useEffect, useState, useContext } from "react";
 import { ModleData, issueData, Service, UrgencyData, brand as brandList } from "../assets/data";
+import { useNavigate } from "react-router-dom";
 import axiosInstance from "../utils/authInterceptor";
 import { toast } from "react-toastify";
 import { store } from "../context/StoreProvider";
+import LoadingPage  from "../Componets/LoadingPage.jsx";
 
 
 function Request() {
 
 
     const { user } = useContext(store);
+    const navigator = useNavigate();
+    const [loading, setLoading] = useState(false);
 
 
 
@@ -242,6 +246,7 @@ function Request() {
                 formData.append("image", image.file || image);
             });
 
+            setLoading(true); // START loading
             const response = await axiosInstance.post(
                 "/request/create",
                 formData,
@@ -250,12 +255,14 @@ function Request() {
 
             if (response.status === 201) {
                 toast.success("Request submitted successfully!");
+                navigator(-1);
             }
 
         } catch (error) {
             console.error("Submit Error:", error);
             toast.error(error.response?.data?.message || "Error submitting request");
         }
+        setLoading(false); // END loading
     };
 
 
@@ -275,29 +282,48 @@ function Request() {
     }
 
     return (
+        <>
         <div className="py-28 bg-[#F2F0EF] px-4">
-            {/* Step 0: Device selection */}
+            {/* Step 0: Device Selection */}
             {step === 0 && (
-                <div className="flex flex-col items-center justify-center">
-                    <div className="text-center mb-6">
-                        <h1 className="text-2xl font-semibold text-gray-800">
+                <div className="flex flex-col items-center justify-center px-4 py-8 md:py-10">
+
+                    {/* Heading */}
+                    <div className="text-center mb-8 max-w-xl">
+                        <h1 className="text-2xl md:text-3xl font-semibold text-gray-800">
                             What kind of device are you having trouble with?
                         </h1>
-                        <p className="text-gray-500">
-                            Our experts will assess your device and get it back to you in no
-                            time.
+                        <p className="text-gray-500 mt-2 text-sm md:text-base">
+                            Our experts will assess your device and get it back to you in no time.
                         </p>
                     </div>
-                    <div className="grid grid-cols-2 place-items-center md:grid-cols-4 gap-6 w-full max-w-3xl">
+
+                    {/* Device Options */}
+                    <div
+                        className="
+        grid 
+        grid-cols-2 
+        sm:grid-cols-3 
+        md:grid-cols-4 
+        gap-4 
+        w-full 
+        max-w-3xl
+      "
+                    >
                         {modele}
                     </div>
+
+                    {/* Selected Device */}
                     {selected && (
-                        <p className="mt-6 text-blue-600 font-medium">
+                        <p className="mt-6 text-blue-600 font-medium text-lg transition-all">
                             You selected: {selected}
                         </p>
                     )}
+
                 </div>
             )}
+
+
 
             {/* Step 1: Issue selection */}
             {step === 1 && (
@@ -634,163 +660,208 @@ function Request() {
             {/*choice the tecnician*/}
             {step === 6 && (
                 <div className="flex flex-col text-center items-center">
-                    <h1 className="text-2xl font-semibold text-gray-800">Available Technicians</h1>
+                    <h1 className="text-3xl font-semibold text-gray-800 tracking-wide">
+                        Available Technicians
+                    </h1>
 
-                    {technicians.length > 0 ? (<>
-                        <div className="grid grid-cols-1 justify-items-center mt-4 w-5/6 max-w-4xl h-96 max-h-11/12 overflow-y-auto hide-scrollbar bg-[#BBBDBC] md:grid-cols-3 rounded-xl">
-                            {technicians.map((tech, index) => (
-                                <div
-                                    key={tech._id || index}
-                                    className={`bg-white p-4 m-4 rounded-xl shadow-md text-center flex flex-col items-center ${selectTechnician?._id === tech._id ? "border-4 border-[#2B6777]" : ""
-                                        }`}
+                    {technicians.length > 0 ? (
+                        <>
+                            <div className="
+            grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 
+            gap-6 mt-6 w-5/6 max-w-5xl 
+            h-96 overflow-y-auto hide-scrollbar 
+            bg-[#e0e1e2] p-6 rounded-2xl shadow-inner
+        ">
+                                {technicians.map((tech, index) => (
+                                    <div
+                                        key={tech._id || index}
+                                        onClick={() => setSelectTechnician(tech)}
+                                        className={`
+                w-full p-5 rounded-xl shadow-md transition-all  
+                bg-white flex flex-col items-center cursor-pointer 
+                hover:bg-gray-100 hover:shadow-lg
+                ${selectTechnician?._id === tech._id ? "border-4 border-[#2B6777] bg-[#e8f4f2]" : "border border-gray-300"}
+              `}
+                                    >
+                                        <img
+                                            src={tech.pic[0] || "/default.jpg"}
+                                            alt={tech.name}
+                                            className="w-24 h-24 rounded-full object-cover border shadow"
+                                        />
 
-                                    onClick={() => setSelectTechnician(tech)}
+                                        <h2 className="text-lg font-bold mt-3 text-[#2B6777]">
+                                            {tech.name}
+                                        </h2>
+
+                                        <p className="text-gray-600">{tech.shopName}</p>
+
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            Experience: <span className="font-medium">{tech.experience}</span>
+                                        </p>
+
+                                        <p className="text-sm text-gray-500">
+                                            Charges: <span className="font-medium">{tech.prize}</span>
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* BUTTONS */}
+                            <div className="mt-6 w-5/6 max-w-4xl flex justify-between">
+                                <button
+                                    onClick={() => setStep(5)}
+                                    className="px-5 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition"
                                 >
-                                    <img
-                                        src={tech.pic[0]}
-                                        alt={tech.name}
-                                        className="w-24 h-24 rounded-full mx-16 object-cover border"
-                                    />
-                                    <h2 className="text-lg font-semibold text-[#2B6777]">{tech.name}</h2>
-                                    <p className="text-gray-600">{tech.shopName}</p>
-                                    <p className="text-sm text-gray-500">Experience: {tech.experience}</p>
-                                    <p className="text-sm text-gray-500">Charges: {tech.prize}</p>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="m-5 w-5/6 max-w-4xl flex justify-around">
-                            <button onClick={() => setStep(5)} className="px-4 py-2 mr-10 bg-gray-300 rounded-lg">
-                                Go Back
-                            </button>
-                            <button onClick={() => selectTechnician && setStep(7)}
-                                className={`px-4 py-2 rounded-lg 
-        ${selectTechnician ? "bg-[#52AB98] text-white" : "bg-gray-400 cursor-not-allowed"}`}
-                                disabled={!selectTechnician}>
-                                Submit
-                            </button>
-                        </div>
-                    </>
+                                    Go Back
+                                </button>
+
+                                <button
+                                    onClick={() => selectTechnician && setStep(7)}
+                                    disabled={!selectTechnician}
+                                    className={`px-6 py-2 rounded-lg transition
+              ${selectTechnician
+                                            ? "bg-[#52AB98] text-white hover:bg-[#3a8977]"
+                                            : "bg-gray-400 text-white cursor-not-allowed"
+                                        }`}
+                                >
+                                    Submit
+                                </button>
+                            </div>
+                        </>
                     ) : (
                         <p className="mt-4 text-gray-600">No technicians found for this area.</p>
                     )}
-                </div>
-            )
-            }
-
-            {/* Step 7: Review */}
-            {step === 7 && (
-                <div className="max-w-3xl mx-auto p-6">
-
-                    {/* DEVICE LINE */}
-                    <div className="flex items-center my-6">
-                        <div className="flex border border-t"></div>
-                        <span className="mx-4 text-gray-700 font-medium">Device Information</span>
-                        <div className="flex border-t"></div>
-                    </div>
-
-                    <p><strong>Device:</strong> {selected}</p>
-                    <p><strong>Brand:</strong> {selectedBrand}</p>
-                    <p><strong>Model:</strong> {model}</p>
-                    {imei && <p><strong>IMEI:</strong> {imei}</p>}
-
-                    {/* ISSUE LINE */}
-                    <div className="flex items-center my-6">
-                        <div className="flex border-t"></div>
-                        <span className="mx-4 text-gray-700 font-medium">Issue Details</span>
-                        <div className="flex border-t"></div>
-                    </div>
-
-                    <p><strong>Issue:</strong> {issue}</p>
-                    {issue?.toLowerCase() === "other" && (
-                        <p><strong>Description:</strong> {otherText}</p>
-                    )}
-
-                    {/* SERVICE LINE */}
-                    <div className="flex items-center my-6">
-                        <div className="flex border-t"></div>
-                        <span className="mx-4 text-gray-700 font-medium">Service Information</span>
-                        <div className="flex border-t"></div>
-                    </div>
-
-                    <p><strong>Service:</strong> {serviceType}</p>
-                    <p><strong>Urgency:</strong> {urgency}</p>
-
-                    {/* ADDRESS LINE */}
-                    <div className="flex items-center my-6">
-                        <div className="flex border-t"></div>
-                        <span className="mx-4 text-gray-700 font-medium">Address</span>
-                        <div className="flex border-t"></div>
-                    </div>
-
-                    <p><strong>Address:</strong> {address}</p>
-                    <p><strong>City:</strong> {city}</p>
-                    <p><strong>Pincode:</strong> {pincode}</p>
-
-                    {/* IMAGES LINE */}
-                    <div className="flex items-center my-6">
-                        <div className="flex border-t"></div>
-                        <span className="mx-4 text-gray-700 font-medium">Uploaded Images</span>
-                        <div className="flex border-t"></div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3">
-                        {uploadedImages?.map((img, i) => (
-                            <img
-                                key={i}
-                                src={img.preview}
-                                className="w-full h-24 object-cover rounded-md border"
-                            />
-                        ))}
-                    </div>
-
-                    {/* TECHNICIAN LINE */}
-                    <div className="flex items-center my-6">
-                        <div className="flex border-t"></div>
-                        <span className="mx-4 text-gray-700 font-medium">Technician</span>
-                        <div className="flex border-t"></div>
-                    </div>
-
-                    {selectTechnician ? (
-                        <div className="flex items-center gap-4">
-                            <img
-                                src={selectTechnician?.pic?.[0] || "/default.jpg"}
-                                className="w-20 h-20 rounded-full object-cover border"
-                            />
-                            <div>
-                                <p><strong>Name:</strong> {selectTechnician.name}</p>
-                                <p><strong>Shop:</strong> {selectTechnician.shopName}</p>
-                                <p><strong>Experience:</strong> {selectTechnician.experience}</p>
-                                <p><strong>Charges:</strong> {selectTechnician.prize}</p>
-                            </div>
-                        </div>
-                    ) : (
-                        <p>No technician selected.</p>
-                    )}
-
-                    {/* BUTTONS */}
-                    <div className="flex justify-between mt-8">
-                        <button
-                            onClick={() => setStep(6)}
-                            className="px-4 py-2 bg-gray-300 rounded-lg"
-                        >
-                            Back
-                        </button>
-
-                        <button
-                            onClick={() => handleFinalSubmit()}
-                            className="px-6 py-2 bg-[#52AB98] text-white rounded-lg hover:bg-[#2e5f54]"
-                        >
-                            Confirm & Submit
-                        </button>
-                    </div>
-
                 </div>
             )}
 
 
 
+            {/* ⭐ STEP 7: Review Summary */}
+            {step === 7 && (
+                <div className="max-w-4xl mx-auto p-6">
 
+                    <h1 className="text-3xl font-semibold text-center text-[#2B6777] mb-8">
+                        Review Your Request
+                    </h1>
+
+                    {/* DEVICE INFORMATION */}
+                    <div className="bg-white shadow-md rounded-xl p-5 mb-6">
+                        <h2 className="text-xl font-bold text-gray-700 flex items-center gap-2 mb-4">
+                            Device Information
+                        </h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <p><span className="font-semibold">Device:</span> {selected}</p>
+                            <p><span className="font-semibold">Brand:</span> {selectedBrand}</p>
+                            <p><span className="font-semibold">Model:</span> {model}</p>
+                            {imei && <p><span className="font-semibold">IMEI:</span> {imei}</p>}
+                        </div>
+                    </div>
+
+                    {/* ISSUE DETAILS */}
+                    <div className="bg-white shadow-md rounded-xl p-5 mb-6">
+                        <h2 className="text-xl font-bold text-gray-700 flex items-center gap-2 mb-4">
+                            Issue Details
+                        </h2>
+
+                        <p><span className="font-semibold">Issue:</span> {issue}</p>
+
+                        {issue?.toLowerCase() === "other" && (
+                            <p className="mt-2">
+                                <span className="font-semibold">Description:</span> {otherText}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* SERVICE INFORMATION */}
+                    <div className="bg-white shadow-md rounded-xl p-5 mb-6">
+                        <h2 className="text-xl font-bold text-gray-700 flex items-center gap-2 mb-4">
+                            Service Information
+                        </h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <p><span className="font-semibold">Service Type:</span> {serviceType}</p>
+                            <p><span className="font-semibold">Urgency:</span> {urgency}</p>
+                        </div>
+                    </div>
+
+                    {/* ADDRESS INFORMATION */}
+                    <div className="bg-white shadow-md rounded-xl p-5 mb-6">
+                        <h2 className="text-xl font-bold text-gray-700 flex items-center gap-2 mb-4">
+                            Address Information
+                        </h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <p><span className="font-semibold">Street:</span> {address}</p>
+                            <p><span className="font-semibold">City:</span> {city}</p>
+                            <p><span className="font-semibold">Pincode:</span> {pincode}</p>
+                        </div>
+                    </div>
+
+                    {/* UPLOADED IMAGES */}
+                    {uploadedImages?.length > 0 && (
+                        <div className="bg-white shadow-md rounded-xl p-5 mb-6">
+                            <h2 className="text-xl font-bold text-gray-700 flex items-center gap-2 mb-4">
+                                Uploaded Images
+                            </h2>
+
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                {uploadedImages?.map((img, i) => (
+                                    <img
+                                        key={i}
+                                        src={img.preview}
+                                        className="w-full h-28 object-cover rounded-lg border shadow-sm"
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TECHNICIAN DETAILS */}
+                    <div className="bg-white shadow-md rounded-xl p-5 mb-6">
+                        <h2 className="text-xl font-bold text-gray-700 flex items-center gap-2 mb-4">
+                            Assigned Technician
+                        </h2>
+
+                        {selectTechnician ? (
+                            <div className="flex gap-4 items-center">
+                                <img
+                                    src={selectTechnician?.pic?.[0].url || "/default.jpg"}
+                                    className="w-20 h-20 rounded-full object-cover border shadow"
+                                />
+                                <div className="space-y-1">
+                                    <p><span className="font-semibold">Name:</span> {selectTechnician.name}</p>
+                                    <p><span className="font-semibold">Shop:</span> {selectTechnician.shopName}</p>
+                                    <p><span className="font-semibold">Experience:</span> {selectTechnician.experience}</p>
+                                    <p><span className="font-semibold">Charges:</span> ₹{selectTechnician.prize}</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-gray-500">No technician selected.</p>
+                        )}
+                    </div>
+
+                    {/* BUTTONS */}
+                    <div className="flex justify-between mt-10">
+                        <button
+                            onClick={() => setStep(6)}
+                            className="px-6 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
+                        >
+                            Back
+                        </button>
+
+                        <button
+                            onClick={handleFinalSubmit}
+                            className="px-8 py-2 bg-[#52AB98] text-white rounded-lg shadow hover:bg-[#2e5f54]"
+                        >
+                            Confirm & Submit
+                        </button>
+                    </div>
+                </div>
+            )}
         </div >
+        {loading && <LoadingPage />}    {/* Show loading screen if loading is true */ } 
+        </>
     );
 }
 

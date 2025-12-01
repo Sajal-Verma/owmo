@@ -1,93 +1,87 @@
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 import Cookies from "js-cookie";
+import { useState, useEffect, useContext } from "react";
+import { store } from "../context/StoreProvider";
 
-import logo from '../assets/image/SiteLogo.png';
-import logo2 from "../assets/image/owmo1.png"
-import { useState, useEffect , useContext} from 'react';
-import {store} from "../context/StoreProvider"
+import logo from "../assets/image/SiteLogo.png";
+import logo2 from "../assets/image/owmo1.png";
 
 function NavBar() {
+  const [open, setOpen] = useState(false);
+  const { isLogin } = useContext(store);
 
+  useEffect(() => {
+    const closeMenu = () => setOpen(false);
+    window.addEventListener("scroll", closeMenu);
+    return () => window.removeEventListener("scroll", closeMenu);
+  }, []);
 
-    const [Open, setOpen] = useState(false);
-    const [userData, setUserData] = useState(null);
-    const {user, isLogin, loginUser} = useContext(store);
+  return (
+    <nav className="sticky top-0 z-40 bg-[#F2F0EF]/70 backdrop-blur-md shadow-sm px-4 py-2 flex justify-between items-center">
+      
+      {/* Logo */}
+      <Link to="/" className="flex items-center space-x-1">
+        <img src={logo} className="h-10" alt="logo" />
+        <img src={logo2} className="h-5 pt-1" alt="owmo" />
+      </Link>
 
-    useEffect(() => {
-        // Load user data from cookies on mount
-        const cookieUser = Cookies.get("user");
-        if (cookieUser) {
-            setUserData(JSON.parse(cookieUser));
-        }
+      {/* Desktop Menu */}
+      <ul className="hidden md:flex space-x-8 text-lg font-medium">
+        <li><Link className="hover:text-[#52AB98] transition" to="/">Home</Link></li>
+        <li><Link className="hover:text-[#52AB98] transition" to="/about">About</Link></li>
+        <li><Link className="hover:text-[#52AB98] transition" to="/faq">FAQs</Link></li>
+      </ul>
 
-        const handleScroll = () => {
-            setOpen(false); // Hide menu on scroll
-        };
+      {/* Desktop Button */}
+      {isLogin ? (
+        <Link to="/lala" className="hidden md:block">
+          <button className="bg-[#52AB98] text-black px-5 py-2 rounded-md hover:bg-[#64d0b9] transition">
+            Welcome
+          </button>
+        </Link>
+      ) : (
+        <Link to="/login" className="hidden md:block">
+          <button className="bg-[#52AB98] text-black px-5 py-2 rounded-md hover:bg-[#64d0b9] transition">
+            Login
+          </button>
+        </Link>
+      )}
 
-        window.addEventListener('scroll', handleScroll);
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setOpen(!open)}
+        className="md:hidden text-3xl px-2 py-1 rounded-md border border-gray-400"
+      >
+        {open ? "✖" : "☰"}
+      </button>
 
-        return () => {
-            window.removeEventListener('scroll', handleScroll);
-        };
-    }, []);
+      {/* Mobile Drawer */}
+      {open && (
+        <div className="absolute top-16 left-0 w-full bg-white shadow-md md:hidden animate-slideDown">
+          <ul className="flex flex-col items-center py-4 space-y-5 text-lg font-medium">
+            <li><Link to="/" onClick={() => setOpen(false)}>Home</Link></li>
+            <li><Link to="/about" onClick={() => setOpen(false)}>About</Link></li>
+            <li><Link to="/faq" onClick={() => setOpen(false)}>FAQs</Link></li>
 
-
-
-    return (
-        <nav className={`flex justify-between p-2 ${Open ? '' : 'bg-[#BBBDBC]/50'} sticky top-0`}>
-
-
-            {/*button for open and close*/}
-            <div className={`${Open ? 'bg-[#BBBDBC] p-2 rounded-md fixed z-10 shadow-xl' : ''} md:hidden`}>
-                <button
-                    onClick={() => setOpen(!Open)}
-                    className='bg-[#C8D8E4] w-10 h-10 rounded-md border-2 border-[#57A7E3] text-xl md:hidden'
-                >
-                    {Open ? '✖' : '☰'}
+            {isLogin ? (
+              <Link to="/lala" onClick={() => setOpen(false)}>
+                <button className="bg-[#52AB98] text-black px-6 py-2 rounded-md">
+                  Welcome
                 </button>
-                {Open && (
-                    <div className='flex flex-col items-center p-2'>
-                        <ul className="flex flex-col space-y-8 text-xl p-2 md:hidden mt-4 gap-4">
-                            <li ><Link to="/" className="block hover:text-gray-200">Home</Link></li>
-                            <li><Link to="/about" className="block hover:text-gray-200">About</Link></li>
-                            <li><Link to="/faq" className="block hover:text-gray-200">FAQs</Link></li>
-                            <li><Link to="/contact" className="block hover:text-gray-200">dashboard</Link></li>
-                        </ul>
-                        <button className='bg-[#52AB98] text-xl px-6 py-2 rounded-md mt-4 md:hidden'>Book a Repair</button>
-                    </div>
-                )}
-            </div>
+              </Link>
+            ) : (
+              <Link to="/login" onClick={() => setOpen(false)}>
+                <button className="bg-[#52AB98] text-black px-6 py-2 rounded-md">
+                  Login
+                </button>
+              </Link>
+            )}
+          </ul>
+        </div>
+      )}
 
-
-            <div className='pt-1 md:self-center'>
-                <Link to="/" className='flex flex-row'>
-                <img src={logo} alt="img" className='h-10' />
-                <img src={logo2} alt="img" className='h-5 self-center pl-1' />
-                </Link>
-            </div>
-            <ul className="hidden md:flex space-x-8 text-xl self-center">
-                <li><Link to="/" className="hover:text-gray-200">Home</Link></li>
-                <li><Link to="/about" className="hover:text-gray-200">About</Link></li>
-                <li><Link to="/faq" className="hover:text-gray-200">FAQs</Link></li>
-                {/*<li><Link to="/contact" className="hover:text-gray-200">Contact</Link></li>*/}
-            </ul>
-            {
-                isLogin ? (
-                    <Link to={"/lala"}>
-                        <button className='hidden md:inline bg-[#52AB98] text-xl px-6 py-1 rounded-md cursor-pointer'>
-                            Welcome {user.name || ""}
-                        </button>
-                    </Link>
-                ) : (
-                    <Link to={"/login"}>
-                        <button className='hidden md:inline bg-[#52AB98] text-xl px-6 py-1 rounded-md cursor-pointer'>
-                            Login
-                        </button>
-                    </Link>
-                )
-            }
-        </nav>
-    );
+    </nav>
+  );
 }
 
 export default NavBar;

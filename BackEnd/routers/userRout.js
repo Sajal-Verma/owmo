@@ -27,7 +27,7 @@ router.delete("/del/:id", authMiddleware ,del);
 router.post("/showAll/:id",authMiddleware,showAll);
 
 //ml api for find the issue
-router.post("/diagnose",getDiagnosi);
+router.post("/diagnose", authMiddleware,getDiagnosi);
 
 //refresh token
 router.get("/refresh",refresh);

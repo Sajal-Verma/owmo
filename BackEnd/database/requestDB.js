@@ -87,9 +87,17 @@ const requestSchema = new mongoose.Schema({
         type: Date,
         default: null
     },
-
+    cashfreeOrderId: {
+        type: String,
+        default: null
+    },
+    cashfreePaymentSession: {
+        type: String,
+        default: null
+    }
 
 }, { timestamps: true });
 
 const Request = mongoose.model("Request", requestSchema);
-export default Request;
+
+export default Request;   

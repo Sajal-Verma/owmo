@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import OwmoLog from "../assets/image/owmo.png";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -14,14 +14,34 @@ export default function ForgotPassword() {
 
   const [errors, setErrors] = useState({});
   const [pop, setPop] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes countdown
   const navigate = useNavigate();
 
-  // Handle input change
+  // ----------------- OTP Timer -----------------
+  useEffect(() => {
+    if (!pop) return; // Timer starts only when popup opens
+
+    if (timeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [pop, timeLeft]);
+
+  const formatTime = () => {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+  };
+
+  // ------------------------------------------------
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Validate fields
   const validate = () => {
     let newErrors = {};
 
@@ -49,7 +69,7 @@ export default function ForgotPassword() {
     return newErrors;
   };
 
-  // Step 1️⃣ - Send OTP
+  // Step 1 → Send OTP
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
@@ -66,15 +86,16 @@ export default function ForgotPassword() {
       if (res.status === 200) {
         toast.success("OTP sent successfully!");
         setPop(true);
+        setTimeLeft(300); // Reset timer when popup shows
       } else {
-        toast.error("❌ Failed to send OTP");
+        toast.error("Failed to send OTP");
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "❌ Something went wrong!");
+      toast.error(err.response?.data?.message || "Something went wrong!");
     }
   };
 
-  // Step 2️⃣ - Verify OTP
+  // Step 2 → Verify OTP
   const handleOtpVerify = async (e) => {
     e.preventDefault();
     if (!formData.otp) {
@@ -89,26 +110,24 @@ export default function ForgotPassword() {
       });
 
       if (res.status === 200 && res.data.success) {
-        toast.success("✅ OTP Verified!");
+        toast.success("OTP Verified!");
         setPop(false);
 
-        // Step 3️⃣ - Update Password after OTP verification
         await axiosInstance.post("/user/forgot", {
           emailOrPhone: formData.emailOrPhone,
           password: formData.password,
         });
 
-        toast.success("✅ Password updated successfully!");
+        toast.success("Password updated successfully!");
         navigate("/login");
       } else {
-        toast.error("❌ Invalid OTP");
+        toast.error("Invalid OTP");
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "❌ OTP verification failed");
+      toast.error(error.response?.data?.message || "OTP verification failed");
     }
   };
 
-  // Clear form
   const handleClear = () => {
     setFormData({
       emailOrPhone: "",
@@ -117,6 +136,20 @@ export default function ForgotPassword() {
       otp: "",
     });
     setErrors({});
+  };
+
+  // Resend OTP
+  const resendOtp = async () => {
+    try {
+      await axiosInstance.post("/user/createOtp", {
+        emailOrPhone: formData.emailOrPhone,
+      });
+
+      toast.success("OTP Resent!");
+      setTimeLeft(300); // restart timer
+    } catch (err) {
+      toast.error("Failed to resend OTP");
+    }
   };
 
   return (
@@ -137,9 +170,7 @@ export default function ForgotPassword() {
 
         {/* Right Section */}
         <div className="w-full md:w-1/2 p-8">
-          <h2 className="text-xl font-semibold mb-4 text-center">
-            Forgot Password
-          </h2>
+          <h2 className="text-xl font-semibold mb-4 text-center">Forgot Password</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email or Phone */}
@@ -153,9 +184,7 @@ export default function ForgotPassword() {
                 className="w-full px-3 py-2 border rounded-full bg-gray-100 focus:outline-none focus:ring focus:ring-teal-300"
               />
               {errors.emailOrPhone && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.emailOrPhone}
-                </p>
+                <p className="text-red-500 text-sm mt-1">{errors.emailOrPhone}</p>
               )}
             </div>
 
@@ -185,13 +214,10 @@ export default function ForgotPassword() {
                 className="w-full px-3 py-2 border rounded-full bg-gray-100 focus:outline-none focus:ring focus:ring-teal-300"
               />
               {errors.confirmPassword && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.confirmPassword}
-                </p>
+                <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
               )}
             </div>
 
-            {/* Buttons */}
             <div className="flex flex-col sm:flex-row justify-center gap-3">
               <button
                 type="submit"
@@ -216,12 +242,13 @@ export default function ForgotPassword() {
       {pop && (
         <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50">
           <div className="bg-[#BBBDBC] p-6 rounded-2xl shadow-lg w-80 text-center">
-            <h2 className="text-xl font-semibold mb-3 text-gray-800">
-              Enter OTP
-            </h2>
+            <h2 className="text-xl font-semibold mb-3 text-gray-800">Enter OTP</h2>
             <p className="text-gray-600 mb-3">
               Please enter the OTP sent to your email or phone.
             </p>
+
+
+            {/* OTP Input */}
             <form onSubmit={handleOtpVerify}>
               <input
                 type="number"
@@ -231,6 +258,7 @@ export default function ForgotPassword() {
                 placeholder="Enter OTP"
                 className="w-full px-3 py-2 mb-4 border rounded-full bg-gray-100 focus:outline-none focus:ring focus:ring-teal-300"
               />
+
               <button
                 type="submit"
                 className="w-full bg-[#52AB98] text-white py-2 rounded-lg hover:bg-[#3e8374] transition"
@@ -238,6 +266,20 @@ export default function ForgotPassword() {
                 Verify OTP
               </button>
             </form>
+
+            {/* Resend OTP Button */}
+            {timeLeft === 0 ? (
+              <button
+                onClick={resendOtp}
+                className="mt-3 text-sm text-blue-600 underline"
+              >
+                Resend OTP
+              </button>
+            ) : (
+              <p className="mt-3 text-sm text-gray-700">
+                You can resend OTP after: <b>{formatTime()}</b>
+              </p>
+            )}
           </div>
         </div>
       )}

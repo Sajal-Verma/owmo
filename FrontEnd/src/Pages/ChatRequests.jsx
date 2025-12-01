@@ -144,9 +144,6 @@ const ChatRequests = () => {
         <p className="text-gray-600">No requests found.</p>
       ) : (
         <>
-
-          <h2 className="text-lg font-bold text-gray-700 mt-6">Requests</h2>
-
           {/* AG Grid */}
           <div
             className="ag-theme-quartz mt-6 w-full max-w-5xl"
