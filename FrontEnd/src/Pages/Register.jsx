@@ -2,6 +2,9 @@ import { useState } from "react";
 import OwmoLog from '../assets/image/owmo.png';
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+
 
 import axiosInstance from "../api/axios";
 
@@ -10,6 +13,8 @@ import axiosInstance from "../api/axios";
 export default function Register() {
 
   const navgation = useNavigate();
+  const [loading, setLoading] = useState(false);
+
 
   const [formData, setFormData] = useState({
     name: "",
@@ -99,6 +104,7 @@ export default function Register() {
 
   const RegisterApi = async () => {
     try {
+      setLoading(true);
       const res = await axiosInstance.post("/user/register", formData);
       console.log(res);
 
@@ -116,6 +122,8 @@ export default function Register() {
     } catch (error) {
       console.log(error);
       toast.error(error.response?.data?.message || "❌ Something went wrong.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -258,10 +266,25 @@ export default function Register() {
             <div className="flex flex-col sm:flex-row justify-center gap-3">
               <button
                 type="submit"
-                className="px-6 py-2 bg-teal-600 text-white rounded-full hover:bg-teal-700 cursor-pointer"
+                disabled={loading}
+                className={`px-6 py-2 rounded-full flex items-center justify-center gap-2
+    ${loading ? "bg-teal-200 cursor-not-allowed text-black" : "bg-teal-600 text-white hover:bg-teal-700"}`}
               >
-                Submit
+                {loading ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    >
+                      <Loader2 className="w-5 h-5" />
+                    </motion.div>
+                    Processing...
+                  </>
+                ) : (
+                  "Submit"
+                )}
               </button>
+
 
               <button
                 onClick={handleClear}

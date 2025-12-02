@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState, useContext } from "react";
 import { toast } from "react-toastify";
 import { store } from "../context/StoreProvider";
+import { Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const RequestDetails = () => {
     const { id } = useParams();
@@ -10,7 +12,7 @@ const RequestDetails = () => {
     const { user } = useContext(store);
 
     const [request, setRequest] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
 
     // Technician update states
     const [statusUpdate, setStatusUpdate] = useState("");
@@ -54,6 +56,7 @@ const RequestDetails = () => {
                 formData.append("image", img);
             });
 
+            setLoading(true);
             const res = await axiosInstance.put(
                 `/request/update/${request._id}`,
                 formData,
@@ -66,6 +69,8 @@ const RequestDetails = () => {
             }
         } catch (error) {
             toast.error("Update failed");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -76,14 +81,17 @@ const RequestDetails = () => {
         if (!window.confirm("Are you sure you want to delete this request?")) return;
 
         try {
+            setLoading(true);
             const res = await axiosInstance.delete(`/request/delete/${id}`);
 
             if (res.status === 200) {
                 toast.success("Request deleted!");
-                navigate("/admin/dashboard");
+                navigate(-1);
             }
         } catch (error) {
             toast.error("Failed to delete request.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -94,37 +102,51 @@ const RequestDetails = () => {
         navigate(`/payment/${request._id}`);
     };
 
-    if (loading) return <p className="p-4">Loading...</p>;
     if (!request) return <p className="p-4">No data found.</p>;
 
     return (
-        <div className="p-6 max-w-4xl mx-auto bg-gray-100 min-h-screen rounded-lg shadow-md">
+        <div className="p-6 my-10 max-w-4xl mx-auto bg-gray-100 min-h-screen rounded-lg shadow-md">
 
             {/* Back Button */}
-            <button
-                onClick={() => navigate(-1)}
-                className="mb-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-            >
-                ⬅ Back
-            </button>
-
-            {/* Admin Delete */}
-            {isAdmin && (
+            <div className="flex">
                 <button
-                    onClick={handleDelete}
-                    className="mb-4 ml-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+                    onClick={() => navigate(-1)}
+                    className="mb-4 px-4 py-2 cursor-pointer bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
                 >
-                    🗑 Delete Request
+                    Back
                 </button>
-            )}
+
+                {/* Admin Delete */}
+                {isAdmin && (
+                    <button
+                        onClick={handleDelete}
+                        className={`mb-4 ml-4 px-4 py-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-2
+    ${loading ? "bg-red-300 cursor-not-allowed text-black" : "bg-red-600 text-white hover:bg-red-700"}`}
+                    >
+                        {loading ? (
+                            <>
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                                >
+                                    <Loader2 className="w-5 h-5" />
+                                </motion.div>
+                                Processing...
+                            </>
+                        ) : (
+                            "Delete Request"
+                        )}
+                    </button>
+                )}
+            </div>
 
             <h2 className="text-2xl font-bold mb-6 text-gray-800">Request Details</h2>
 
             {/* Grid Two Column */}
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 gap-4">
 
                 {/* Left Column */}
-                <div className="space-y-3 text-gray-700 bg-white p-4 rounded-xl shadow">
+                <div className="space-y-2 text-gray-700 bg-white p-4 rounded-xl shadow">
                     <h3 className="text-xl font-semibold mb-3">Device Information</h3>
                     <p><strong>Type:</strong> {request.type}</p>
                     <p><strong>Brand:</strong> {request.brand}</p>
@@ -136,45 +158,50 @@ const RequestDetails = () => {
                 </div>
 
                 {/* Right Column */}
-                <div className="space-y-3 text-gray-700 bg-white p-4 rounded-xl shadow">
+                <div className="space-y-2 flex flex-col justify-around text-gray-700 bg-white p-4 rounded-xl shadow">
                     <h3 className="text-xl font-semibold mb-3">Payment Info</h3>
 
-                    {request.paymentAmount ? (
-                        <>
-                            <p><strong>Payment Status:</strong> {request.paymentStatus}</p>
-                            <p><strong>Amount:</strong> ₹{request.paymentAmount}</p>
-                        </>
-                    ) : (
-                        <p>Amount not added yet.</p>
-                    )}
+                    <div className="flex flex-col">
+                        {request.paymentAmount ? (
+                            <>
+                                <p><strong>Payment Status:</strong> {request.paymentStatus}</p>
+                                <p><strong>Amount:</strong> ₹{request.paymentAmount}</p>
+                            </>
+                        ) : (
+                            <p>Amount not added yet.</p>
+                        )}
 
-                    {/* USER: Payment button */}
-                    {isUser && request.paymentAmount > 0 && request.paymentStatus !== "Paid" && (
-                        <button
-                            onClick={handlePayment}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg mt-3"
-                        >
-                            💳 Make Payment
-                        </button>
-                    )}
+                        {/* USER: Payment button */}
+                        {isUser && request.paymentAmount > 0 && request.paymentStatus !== "Paid" && (
+                            <button
+                                onClick={handlePayment}
+                                className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg mt-3"
+                            >
+                                💳 Make Payment
+                            </button>
+                        )}
 
-                    {/* Technician Amount */}
-                    {isTechnician && (
-                        <>
-                            <label className="font-medium">Update Amount</label>
-                            <input
-                                type="number"
-                                value={amountUpdate}
-                                onChange={(e) => setAmountUpdate(e.target.value)}
-                                className="w-full p-2 border rounded-lg"
-                            />
-                        </>
-                    )}
+                        {/* Technician Amount */}
+                        {isTechnician && (
+                            <>
+                                <label className="font-medium">Update Amount</label>
+                                <input
+                                    type="number"
+                                    value={amountUpdate}
+                                    onChange={(e) => setAmountUpdate(e.target.value)}
+                                    className="w-full p-2 border rounded-lg"
+                                />
+                            </>
+                        )}
+                    </div>
 
-                    <h3 className="text-xl font-semibold mt-6 mb-3">Address</h3>
-                    <p><strong>Street:</strong> {request.address?.street}</p>
-                    <p><strong>City:</strong> {request.address?.city}</p>
-                    <p><strong>Pincode:</strong> {request.address?.pincode}</p>
+                    <div flax="flex-col">
+                        <h3 className="text-xl font-semibold mt-6 mb-3">Address</h3>
+                        <p><strong>Street:</strong> {request.address?.street}</p>
+                        <p><strong>City:</strong> {request.address?.city}</p>
+                        <p><strong>Pincode:</strong> {request.address?.pincode}</p>
+                    </div>
+
                 </div>
 
                 {/* Service Details */}

@@ -4,6 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import axiosInstance from "../api/axios";
 import { store } from "../context/StoreProvider";
+import { Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 
 
@@ -11,6 +13,7 @@ import { store } from "../context/StoreProvider";
 export default function Login() {
 
   const { loginUser } = useContext(store);
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -60,6 +63,7 @@ export default function Login() {
   // Login API
   const LoginApi = async () => {
     try {
+      setLoading(true);
       const res = await axiosInstance.post("/user/login", formData);
 
       if (res.status === 200) {
@@ -92,6 +96,8 @@ export default function Login() {
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || "❌ Something went wrong.");
+    }finally {
+      setLoading(false);
     }
   };
 
@@ -138,9 +144,22 @@ export default function Login() {
             {/* Buttons */}
             <button
               type="submit"
-              className="w-full bg-teal-600 text-white py-2 rounded-lg hover:bg-teal-700 transition cursor-pointer"
+              className={`w-full py-2 rounded-lg transition cursor-pointer px-6 flex items-center justify-center gap-2
+    ${loading ? "bg-teal-200 cursor-not-allowed text-black" : "bg-teal-600 text-white hover:bg-teal-700"}`}
             >
-              Sign in
+              {loading ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    >
+                      <Loader2 className="w-5 h-5" />
+                    </motion.div>
+                    Processing...
+                  </>
+                ) : (
+                  "Sign in"
+                )}
             </button>
           </form>
 

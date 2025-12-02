@@ -2,6 +2,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axiosInstance from "../utils/authInterceptor";
 import { toast } from "react-toastify";
+import { Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const UserDetails = () => {
   const { id } = useParams();
@@ -24,7 +26,7 @@ const UserDetails = () => {
     experience: "",
     rating: "",
     role: "",
-    hired: false,  // ✅ Added
+    hired: false,
   });
 
 
@@ -70,6 +72,7 @@ const UserDetails = () => {
   //update the hired 
   const handleHired = async () => {
     try {
+      setLoading(true);
       const res = await axiosInstance.put(`/user/update/${id}`, {
         hired: true
       });
@@ -83,6 +86,8 @@ const UserDetails = () => {
     } catch (err) {
       console.error("Error updating profile:", err);
       toast.error("Something went wrong while updating profile");
+    }finally {
+      setLoading(false);
     }
   };
 
@@ -105,6 +110,7 @@ const UserDetails = () => {
   // DELETE USER
   const handleDelete = async () => {
     try {
+      setLoading(true);
       const res = await axiosInstance.delete(`/user/del/${id}`, { hired: true });
       if (res.status === 200) {
         toast.info("The account is deleted successfully");
@@ -112,10 +118,10 @@ const UserDetails = () => {
       }
     } catch (error) {
       toast.error("Error deleting account");
+    }finally {
+      setLoading(false);
     }
   };
-
-  if (loading) return <div className="text-center p-4">Loading...</div>;
 
   return (
     <div className="flex flex-col space-y-12 py-10 items-center bg-[#F2F0EF] w-full max-x-4xl px-4 scroll-smooth" >
@@ -188,14 +194,27 @@ const UserDetails = () => {
         <div className="flex justify-center gap-4 mt-6">
           <button
             onClick={handleDelete}
-            className="bg-red-500 text-white px-6 py-2 rounded-lg"
+            className={` py-2 rounded-lg transition cursor-pointer px-6 flex items-center justify-center gap-2
+    ${loading ? "bg-red-300 cursor-not-allowed text-black" : "bg-red-500 text-white hover:bg-red-700"}`}
           >
-            Delete
+             {loading ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    >
+                      <Loader2 className="w-5 h-5" />
+                    </motion.div>
+                    Processing...
+                  </>
+                ) : (
+                  "Delete"
+                )}
           </button>
 
           <button
             onClick={() => navigate(-1)}
-            className="bg-gray-600 text-white px-6 py-2 rounded-lg"
+            className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-800 cursor-pointer"
           >
             Go Back
           </button>
@@ -204,9 +223,22 @@ const UserDetails = () => {
           {formData.role === "technician" && !formData.hired && (
             <button
               onClick={handleHired}
-              className="bg-gray-600 text-white px-6 py-2 rounded-lg"
+               className={` py-2 rounded-lg transition cursor-pointer px-6 flex items-center justify-center gap-2
+    ${loading ? "bg-gray-300 cursor-not-allowed text-black" : "bg-gray-600 text-white hover:bg-gray-700"}`}
             >
-              Hired
+              {loading ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    >
+                      <Loader2 className="w-5 h-5" />
+                    </motion.div>
+                    Processing...
+                  </>
+                ) : (
+                  "Hired"
+                )}
             </button>
           )}
 
